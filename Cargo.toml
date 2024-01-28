@@ -1,0 +1,29 @@
+[package]
+name = "secure_proxy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+toml = "0.8.8"
+actix-web = "4.4.1"
+macros-rs = "0.5.2"
+colored = "2.1.0"
+termcolor = "1.4.1"
+
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
+tracing-bunyan-formatter = "0.3.9"
+
+[dependencies.serde]
+version = "1.0.196"
+features = ["derive"]
+
+[dependencies.reqwest]
+version = "0.11.23"
+default-features = false
+features = [
+   "blocking", 
+   "stream",
+   "json", 
+   "rustls-tls", 
+]
