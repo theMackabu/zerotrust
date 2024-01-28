@@ -1,6 +1,9 @@
 use tera::Tera;
 
-pub fn create_templates() -> (Tera, String) {
+#[derive(Clone)]
+pub struct TeraState(pub tera::Tera);
+
+pub fn create_templates() -> TeraState {
     let mut tera = Tera::default();
 
     tera.add_raw_templates(vec![
@@ -10,5 +13,5 @@ pub fn create_templates() -> (Tera, String) {
     ])
     .unwrap();
 
-    return tera;
+    return TeraState(tera);
 }

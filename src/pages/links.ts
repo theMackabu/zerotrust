@@ -14,15 +14,14 @@ export function replaceHTML({ outDirPath, filePath, base, html }: { outDirPath: 
 		'gm'
 	);
 
-	const relativePath = path.relative(path.dirname(filePath), outDirPath).split(path.sep).join(path.posix.sep) || '{{base_path | safe}}';
+	const relativePath = path.relative(path.dirname(filePath), outDirPath).split(path.sep).join(path.posix.sep);
 
 	return html.replace(pattern, `${relativePath}/`);
 }
 
 export function replaceCSS({ outDirPath, filePath, base, css }: { outDirPath: string; filePath: string; base: string; css: string }) {
 	const pattern = new RegExp(`(?<=url\\(\\s*?["']?\\s*?)${base}(?!\/)`, 'gm');
-
-	const relativePath = path.relative(path.dirname(filePath), outDirPath).split(path.sep).join(path.posix.sep) || '{{base_path | safe}}';
+	const relativePath = path.relative(path.dirname(filePath), outDirPath).split(path.sep).join(path.posix.sep);
 
 	return css.replace(pattern, `${relativePath}/`);
 }
