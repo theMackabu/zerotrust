@@ -1,6 +1,5 @@
-# src
-/build
-/target
+# web
+node_modules
 
 # maid
 /.maid/cache
@@ -13,4 +12,6 @@
 
 # local
 /bin
+/dist
+/target
 /config.toml
