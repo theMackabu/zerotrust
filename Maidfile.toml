@@ -4,7 +4,7 @@ version = "0.1.0"
 
 [tasks]
 clean = { script = ["rm -rf bin", "mkdir bin"] }
-assets = { path = "src/pages", script = "pnpm build" }
+assets = { path = "src/pages", script = ["pnpm i", "pnpm build"] }
 run = { script = ["maid assets -q", "bash -c 'cargo run | bunyan'"] }
 
 [tasks.build]
