@@ -12,5 +12,6 @@ tests
 .env
 .env.production
 
-# bin
+# local
+bin
 config.toml

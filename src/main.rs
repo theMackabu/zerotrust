@@ -3,19 +3,15 @@ mod file;
 
 use config::structs::Config;
 use macros_rs::string;
-use std::env;
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{filter::LevelFilter, prelude::*};
 
 use actix_web::{
-    get,
-    http::header::{self, ContentType},
-    http::StatusCode,
-    web::{Bytes, Data, Path},
+    http::{header, StatusCode},
+    web::{Data, Path},
     App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer, Responder,
 };
-
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 
 fn convert_headers(current_headers: &header::HeaderMap) -> HeaderMap {
     let mut headers = reqwest::header::HeaderMap::new();
@@ -37,7 +33,7 @@ fn transfer_headers(mut proxied_response: HttpResponseBuilder, current_headers: 
     return proxied_response;
 }
 
-#[get("{url:.*}")]
+#[actix_web::get("{url:.*}")]
 async fn handler(url: Path<String>, req: HttpRequest, config: Data<Config>) -> impl Responder {
     tracing::info!(method = string!(req.method()), "request '{}'", req.uri());
 
@@ -51,7 +47,7 @@ async fn handler(url: Path<String>, req: HttpRequest, config: Data<Config>) -> i
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env::set_var("RUST_LOG", "INFO");
+    std::env::set_var("RUST_LOG", "INFO");
 
     let config = config::read();
     let app = || App::new().app_data(Data::new(config::read())).service(handler);
