@@ -18,6 +18,18 @@ use actix_web::{
     App, Error, HttpRequest, HttpResponse, HttpServer,
 };
 
+// fn convert_headers(current_headers: &header::HeaderMap) -> HeaderMap {
+//     let mut headers = reqwest::header::HeaderMap::new();
+//
+//     for (key, value) in current_headers.iter() {
+//         let name = HeaderName::from_bytes(key.as_str().as_bytes()).expect("Failed to convert header name");
+//         let value = HeaderValue::from_bytes(value.as_bytes()).expect("Failed to convert header value");
+//         headers.insert(name, value);
+//     }
+//
+//     return headers;
+// }
+
 async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<Config>) -> Result<HttpResponse, Error> {
     tracing::info!(method = string!(req.method()), "request '{}'", req.uri());
 
