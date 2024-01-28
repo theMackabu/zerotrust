@@ -1,11 +1,13 @@
 mod auth;
 mod config;
 mod file;
+mod pages;
 
 use awc::Client;
 use config::structs::Config;
 use futures_util::StreamExt;
 use macros_rs::string;
+use pages::create_templates;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{filter::LevelFilter, prelude::*};
 use url::Url;
@@ -29,6 +31,19 @@ use actix_web::{
 //     }
 //
 //     return headers;
+// }
+
+// fn error_handlers() -> ErrorHandlers<BoxBody> {
+//     ErrorHandlers::new().handler(StatusCode::NOT_FOUND, not_found)
+// }
+//
+// // Error handler for a 404 Page not found error.
+// fn not_found<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<BoxBody>> {
+//     let response = get_error_response(&res, "Page not found");
+//     Ok(ErrorHandlerResponse::Response(ServiceResponse::new(
+//         res.into_parts().0,
+//         response.map_into_left_body(),
+//     )))
 // }
 
 async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<Config>) -> Result<HttpResponse, Error> {
@@ -116,9 +131,12 @@ async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "INFO");
 
     let config = config::read();
+
     let app = || {
         App::new()
             .app_data(Data::new(config::read()))
+            .app_data(Data::new(create_templates()))
+            .service(auth::login)
             .service(web::scope("{url:.*}").guard(guard::Header("upgrade", "websocket")).route("", web::to(proxy_ws)))
             .default_service(web::to(proxy))
     };

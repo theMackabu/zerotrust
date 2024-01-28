@@ -12,6 +12,5 @@ node_modules
 
 # local
 /bin
-/dist
 /target
 /config.toml
