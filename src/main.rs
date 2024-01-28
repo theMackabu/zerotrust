@@ -53,20 +53,20 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
     }
 }
 
-pub async fn proxy_ws(client_req: HttpRequest, client_stream: Payload) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+pub async fn proxy_ws(req: HttpRequest, client_stream: Payload) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     if let Some(name) = req.headers().get("SelectService") {
         let mut url = match name.as_bytes() {
             b"cs27" => Url::parse("http://localhost:9309").unwrap(),
             _ => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
         };
-        url.set_path(client_req.uri().path());
-        url.set_query(client_req.uri().query());
+        url.set_path(req.uri().path());
+        url.set_query(req.uri().query());
 
-        let mut req = reqwest::ClientBuilder::new().build().unwrap().get(url);
-        for (key, value) in client_req.headers() {
-            req = req.header(key, value);
+        let mut request = reqwest::Client::new().get(url);
+        for (key, value) in req.headers() {
+            request = request.header(key, value);
         }
-        let target_response = req.send().await.unwrap();
+        let target_response = request.send().await.unwrap();
 
         let status = target_response.status().as_u16();
         if status != 101 {
