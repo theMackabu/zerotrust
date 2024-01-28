@@ -10,8 +10,10 @@ pub fn read() -> Config {
 
     if !file_exists!(&config_path) {
         let config = Config {
+            providers: None,
             backends: None,
             settings: Settings {
+                database: string!("users.db"),
                 address: string!("127.0.0.1"),
                 port: 8080,
             },
