@@ -6,5 +6,5 @@ body {
 
 html {
 	@apply h-full;
-	@apply bg-zinc-950;
+	@apply bg-white;
 }

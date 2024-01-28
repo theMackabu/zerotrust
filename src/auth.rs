@@ -1,5 +1,6 @@
 use crate::config::structs::Config;
 use crate::pages::TeraState;
+use macros_rs::string;
 use tera::{Context, Tera};
 
 use actix_web::{
@@ -17,6 +18,8 @@ fn render(name: &str, tmpl: &Tera, ctx: &mut Context) -> String {
 
 #[actix_web::get("/_sp/login")]
 pub async fn login(req: HttpRequest, config: Data<Config>, tera: Data<TeraState>) -> HttpResponse {
+    tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
+
     let tera = tera.get_ref();
     let mut ctx = Context::new();
 

@@ -14,11 +14,14 @@ actix-web = "4.4.1"
 macros-rs = "0.5.2"
 termcolor = "1.4.1"
 tokio-util = "0.7.10"
+mime_guess = "2.0.4"
 futures-util = "0.3.30"
 tracing-subscriber = "0.3.18"
+actix-web-static-files = "4.0.1"
 tracing-bunyan-formatter = "0.3.9"
 
 tokio = { version = "1.35.1", features = ["full"] }
 serde = { version = "1.0.196", features = ["derive"] }
 pickledb = { version = "0.5.1", features = ["bincode"] }
+include_dir = { version = "0.7.3", features = ["metadata"] }
 reqwest = { version = "0.11.23", default-features = false, features = ["stream"] }

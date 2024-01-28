@@ -2,13 +2,6 @@ use colored::Colorize;
 use macros_rs::{crashln, string};
 use std::{env, fs, path::PathBuf};
 
-pub fn cwd() -> PathBuf {
-    match env::current_dir() {
-        Ok(path) => path,
-        Err(_) => crashln!("Unable to find current working directory"),
-    }
-}
-
 pub fn read<T: serde::de::DeserializeOwned>(path: String) -> T {
     let contents = match fs::read_to_string(&path) {
         Ok(contents) => contents,

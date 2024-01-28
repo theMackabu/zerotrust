@@ -1,11 +1,14 @@
 mod auth;
 mod config;
 mod file;
+mod helpers;
 mod pages;
 
+use actix_web_static_files::ResourceFiles;
 use awc::Client;
 use config::structs::Config;
 use futures_util::StreamExt;
+use include_dir::{include_dir, Dir};
 use macros_rs::string;
 use pages::create_templates;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
@@ -21,17 +24,7 @@ use actix_web::{
     App, Error, HttpRequest, HttpResponse, HttpServer,
 };
 
-// fn convert_headers(current_headers: &header::HeaderMap) -> HeaderMap {
-//     let mut headers = reqwest::header::HeaderMap::new();
-//
-//     for (key, value) in current_headers.iter() {
-//         let name = HeaderName::from_bytes(key.as_str().as_bytes()).expect("Failed to convert header name");
-//         let value = HeaderValue::from_bytes(value.as_bytes()).expect("Failed to convert header value");
-//         headers.insert(name, value);
-//     }
-//
-//     return headers;
-// }
+static ASSETS_DIR: Dir<'_> = include_dir!("src/pages/dist/_sp/assets");
 
 // fn error_handlers() -> ErrorHandlers<BoxBody> {
 //     ErrorHandlers::new().handler(StatusCode::NOT_FOUND, not_found)
@@ -46,10 +39,11 @@ use actix_web::{
 //     )))
 // }
 
+// add initial setup (no services found & how to config)
 async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<Config>) -> Result<HttpResponse, Error> {
     tracing::info!(method = string!(req.method()), "request '{}'", req.uri());
 
-    // add initial setup (no services found & how to config)
+    let config = config.get_ref();
 
     if let Some(name) = req.headers().get("SelectService") {
         let mut url = match name.as_bytes() {
@@ -69,19 +63,24 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
         };
 
         let res = forwarded_req.send_stream(payload).await.map_err(ErrorInternalServerError)?;
-        let mut client_resp = HttpResponse::build(res.status());
+        let mut client_response = HttpResponse::build(res.status());
 
         for (header_name, header_value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
-            client_resp.insert_header((header_name.clone(), header_value.clone()));
+            client_response.insert_header((header_name.clone(), header_value.clone()));
         }
 
-        Ok(client_resp.streaming(res))
+        tracing::info!(status = string!(res.status()), "response '{}'", req.uri());
+        Ok(client_response.streaming(res))
     } else {
         Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("No service header"))
     }
 }
 
-pub async fn proxy_ws(req: HttpRequest, client_stream: Payload) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+pub async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+    tracing::info!(method = string!(req.method()), "websocket '{}'", req.uri());
+
+    let config = config.get_ref();
+
     if let Some(name) = req.headers().get("SelectService") {
         let mut url = match name.as_bytes() {
             b"cs27" => Url::parse("http://localhost:9309").unwrap(),
@@ -129,14 +128,16 @@ pub async fn proxy_ws(req: HttpRequest, client_stream: Payload) -> Result<HttpRe
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "INFO");
-
     let config = config::read();
 
     let app = || {
+        let files = helpers::build_hashmap(&ASSETS_DIR);
+
         App::new()
             .app_data(Data::new(config::read()))
             .app_data(Data::new(create_templates()))
             .service(auth::login)
+            .service(ResourceFiles::new("/_sp/assets", files))
             .service(web::scope("{url:.*}").guard(guard::Header("upgrade", "websocket")).route("", web::to(proxy_ws)))
             .default_service(web::to(proxy))
     };
