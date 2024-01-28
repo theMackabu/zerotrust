@@ -2,7 +2,7 @@ pub mod structs;
 
 use colored::Colorize;
 use macros_rs::{crashln, file_exists, string};
-use std::fs;
+use std::{collections::BTreeMap, fs};
 use structs::{Config, Settings};
 
 pub fn read() -> Config {
@@ -10,8 +10,8 @@ pub fn read() -> Config {
 
     if !file_exists!(&config_path) {
         let config = Config {
-            providers: None,
-            backends: None,
+            providers: BTreeMap::new(),
+            backends: BTreeMap::new(),
             settings: Settings {
                 database: string!("users.db"),
                 address: string!("127.0.0.1"),

@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Config {
     pub settings: Settings,
-    pub providers: Option<BTreeMap<String, Provider>>,
-    pub backends: Option<BTreeMap<String, Location>>,
+    pub providers: BTreeMap<String, Provider>,
+    pub backends: BTreeMap<String, Location>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -17,8 +17,14 @@ pub struct Settings {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Provider {
-    pub id: String,
-    pub secret: String,
+    #[serde(alias = "client-id")]
+    pub client_id: String,
+    #[serde(alias = "client-secret")]
+    pub client_secret: String,
+    #[serde(alias = "auth-url")]
+    pub auth_url: String,
+    #[serde(alias = "token-url")]
+    pub token_url: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
