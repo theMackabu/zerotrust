@@ -1,17 +1,16 @@
 # src
-build
-target
-tests
+/build
+/target
 
 # maid
-.maid/cache
-.maid/temp
-.maid/server.toml
+/.maid/cache
+/.maid/temp
+/.maid/server.toml
 
 # environment variables
 .env
 .env.production
 
 # local
-bin
-config.toml
+/bin
+/config.toml

@@ -1,0 +1,25 @@
+[project]
+name = "secure_proxy"
+version = "0.1.0"
+
+[tasks]
+clean = { script = ["rm -rf bin", "mkdir bin"] }
+run = { script = "bash -c 'cargo run | bunyan'" }
+
+[tasks.build]
+depends = ["clean"]
+script = [
+   "cargo zigbuild --release", 
+   "cp target/release/secure_proxy bin/secure_proxy"
+]
+
+[tasks.build.cache]
+path = "src"
+target = ["bin/secure_proxy"]
+
+[tasks.install]
+script = [
+   "maid build -q", 
+   "sudo cp bin/secure_proxy /usr/local/bin",
+   "echo Copied binary!"
+]
