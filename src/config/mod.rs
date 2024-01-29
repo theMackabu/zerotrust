@@ -6,9 +6,7 @@ use macros_rs::{crashln, file_exists, string};
 use std::{collections::BTreeMap, fs};
 use structs::{Config, Settings};
 
-pub fn read() -> Config {
-    let config_path = format!("config.toml");
-
+pub fn read(config_path: String) -> Config {
     if !file_exists!(&config_path) {
         let config = Config {
             providers: BTreeMap::new(),

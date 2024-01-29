@@ -5,11 +5,12 @@ version = "0.1.0"
 [tasks]
 clean = { script = ["rm -rf bin", "mkdir bin"] }
 assets = { path = "src/pages", script = ["pnpm i", "pnpm build"] }
-run = { script = ["maid assets -q", "bash -c 'cargo run | bunyan'"] }
+run = { script = ["maid build -q", "bash -c 'bin/secure_proxy start | bunyan'"] }
 
 [tasks.build]
 depends = ["clean"]
 script = [
+   "maid assets -q",
    "cargo zigbuild --release", 
    "cp target/release/secure_proxy bin/secure_proxy"
 ]
