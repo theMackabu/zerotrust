@@ -87,10 +87,9 @@ impl FromResidual<Result<Infallible, reqwest::Error>> for Result<HttpResponse, E
     }
 }
 
-pub(crate) fn not_found<B>(res: dev::ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
-    let (req, res) = res.into_parts();
+pub(crate) fn not_found<B>(sr: dev::ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
+    let (req, res) = sr.into_parts();
     let res = res.set_body(create_error("Not Found", "Page not found"));
     let res = dev::ServiceResponse::new(req, res).map_into_boxed_body();
-
     Ok(ErrorHandlerResponse::Response(res.map_into_right_body()))
 }
