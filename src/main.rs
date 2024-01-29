@@ -72,7 +72,7 @@ static BACKEND_LIST: Lazy<Backends> = Lazy::new(|| {
 // }
 
 // add initial setup (no services found & how to config)
-async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<Config>, backends: Data<Backends>) -> Result<HttpResponse, Error> {
+async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<Config>, backends: Data<&Lazy<Backends>>) -> Result<HttpResponse, Error> {
     tracing::info!(method = string!(req.method()), "request '{}'", req.uri());
 
     let config = config.get_ref();
@@ -108,7 +108,7 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
     }
 }
 
-async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>, backends: Data<Backends>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>, backends: Data<&Lazy<Backends>>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     tracing::info!(method = string!(req.method()), "websocket '{}'", req.uri());
 
     let config = config.get_ref();
@@ -160,17 +160,15 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "INFO");
-
     let config = config::read();
 
     let app = || {
         let files = helpers::build_hashmap(&ASSETS_DIR);
 
         App::new()
-            .app_data(Data::new(&BACKEND_LIST))
             .app_data(Data::new(config::read()))
             .app_data(Data::new(create_templates()))
+            .app_data(Data::new(&BACKEND_LIST))
             .service(auth::login)
             .service(ResourceFiles::new("/_sp/assets", files))
             .service(web::scope("{url:.*}").guard(guard::Header("upgrade", "websocket")).route("", web::to(proxy_ws)))
