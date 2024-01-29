@@ -7,13 +7,12 @@ use actix_web_static_files::ResourceFiles;
 use errors::Error;
 use futures_util::StreamExt;
 use include_dir::{include_dir, Dir};
-use macros_rs::{clone, string, ternary};
+use macros_rs::{clone, fmtstr, string, ternary};
 use once_cell::sync::{Lazy, OnceCell};
 use std::{borrow::Cow, collections::BTreeMap};
 
 use actix_web::{
     dev::PeerAddr,
-    error::ErrorInternalServerError,
     guard,
     http::StatusCode,
     middleware::ErrorHandlers,
@@ -86,7 +85,15 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
             None => forwarded_req,
         };
 
-        let res = catch::_try!(forwarded_req.send_stream(payload).await.map_err(ErrorInternalServerError));
+        let res = match forwarded_req.send_stream(payload).await {
+            Ok(res) => res,
+            Err(err) => {
+                return Err(Error::ConnectionRefused {
+                    message: fmtstr!("Sorry, this page could not be loaded from upstream.\nCode: {err}"),
+                })
+            }
+        };
+
         let mut client_response = HttpResponse::build(res.status());
 
         for (header_name, header_value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
