@@ -69,7 +69,8 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
     let config = config.get_ref();
 
     if let Some(name) = req.headers().get("SelectService") {
-        let mut url = match backends.get(name.to_str().unwrap_or("")) {
+        let name = name.to_str().unwrap_or("");
+        let mut url = match backends.get(name) {
             Some(item) => clone!(item.url),
             None => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
         };
@@ -92,7 +93,7 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
             client_response.insert_header((header_name.clone(), header_value.clone()));
         }
 
-        tracing::info!(status = string!(res.status()), "response '{}'", req.uri());
+        tracing::info!(service = name, status = string!(res.status()), "responded");
         Ok(client_response.streaming(res))
     } else {
         Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("No service header"))
@@ -105,7 +106,8 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCe
     let config = config.get_ref();
 
     if let Some(name) = req.headers().get("SelectService") {
-        let mut url = match backends.get(name.to_str().unwrap_or("")) {
+        let name = name.to_str().unwrap_or("");
+        let mut url = match backends.get(name) {
             Some(item) => clone!(item.url),
             None => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
         };
@@ -143,6 +145,8 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCe
         });
 
         let target_stream = tokio_util::io::ReaderStream::new(target_rx);
+        tracing::info!(service = name, status, "connected");
+
         Ok(client_response.streaming(target_stream))
     } else {
         Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("No service header"))

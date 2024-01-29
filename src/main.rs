@@ -21,6 +21,25 @@ struct Cli {
     command: Commands,
     #[clap(flatten)]
     verbose: Verbosity<InfoLevel>,
+    /// Config path
+    #[arg(short, long, default_value = "config.toml")]
+    config: String,
+}
+
+#[derive(Subcommand)]
+enum User {
+    /// Add a user
+    #[command()]
+    Add { name: String },
+    /// Remove a user
+    #[command()]
+    Remove { name: String },
+    /// Reset user info
+    #[command()]
+    Reset { name: String },
+    /// Link user to provider
+    #[command()]
+    Link { name: String },
 }
 
 // add pmc restore command
@@ -28,10 +47,11 @@ struct Cli {
 enum Commands {
     /// Start the proxy
     #[command(visible_alias = "serve")]
-    Start {
-        /// Config path
-        #[arg(short, long, default_value = "config.toml")]
-        config: String,
+    Start,
+    /// User management
+    User {
+        #[command(subcommand)]
+        command: User,
     },
 }
 
@@ -61,8 +81,8 @@ fn main() {
         .init();
 
     match cli.command {
-        Commands::Start { config } => {
-            if let Err(err) = CONFIG.set(config::read(config)) {
+        Commands::Start => {
+            if let Err(err) = CONFIG.set(config::read(cli.config)) {
                 crashln!("Failed to set config!\n{:?}", err)
             };
 
@@ -70,5 +90,11 @@ fn main() {
                 crashln!("Failed to start server!\n{:?}", err)
             };
         }
+        Commands::User { command } => match command {
+            User::Add { name } => {}
+            User::Remove { name } => {}
+            User::Reset { name } => {}
+            User::Link { name } => {}
+        },
     };
 }
