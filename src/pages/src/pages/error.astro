@@ -1,10 +1,10 @@
 ---
 import Base from '@/components/base.astro';
-import LoginPage from '@/components/react/login';
+import Error from '@/components/react/error';
 ---
 
 <!DOCTYPE html>
 <html lang="en">
    <head><Base title={"{{error_name}}"} /></head>
-   <body><main><LoginPage client:only /></main></body>
+   <body><main><Error error={{name: "{{error_name}}", message: "{{error_message}}"}} client:only /></main></body>
 </html>

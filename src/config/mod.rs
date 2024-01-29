@@ -14,6 +14,7 @@ pub fn read(config_path: String) -> Config {
             settings: Settings {
                 database: string!("users.db"),
                 secret: string!("CHANGE ME"),
+                max_age: 604800,
                 address: string!("127.0.0.1"),
                 port: 8080,
             },

@@ -1,4 +1,4 @@
-use tera::Tera;
+use tera::{Context, Tera};
 
 #[derive(Clone)]
 pub struct TeraState(pub tera::Tera);
@@ -14,4 +14,11 @@ pub fn create_templates() -> TeraState {
     .unwrap();
 
     return TeraState(tera);
+}
+
+pub fn render(name: &str, tmpl: &Tera, ctx: &mut Context) -> String {
+    tmpl.render(name, &ctx).unwrap_or_else(|_err| {
+        ctx.insert("error_name", "not found");
+        tmpl.render("error", &ctx).unwrap()
+    })
 }

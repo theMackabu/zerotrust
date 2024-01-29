@@ -2,15 +2,15 @@ use diesel::{allow_tables_to_appear_in_same_query, joinable, table};
 
 table! {
     login_history (id) {
-        id -> Int4,
-        user_id -> Int4,
+        id -> Integer,
+        user_id -> Integer,
         login_timestamp -> Timestamp,
     }
 }
 
 table! {
     users (id) {
-        id -> Int4,
+        id -> Integer,
         username -> Varchar,
         email -> Varchar,
         password -> Varchar,

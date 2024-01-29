@@ -1750,6 +1750,7 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "colored",
+ "derive_more",
  "diesel",
  "futures-util",
  "include_dir",

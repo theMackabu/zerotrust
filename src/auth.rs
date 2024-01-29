@@ -1,20 +1,13 @@
 use crate::config::structs::Config;
-use crate::pages::TeraState;
+use crate::pages::{render, TeraState};
 use macros_rs::string;
-use tera::{Context, Tera};
+use tera::Context;
 
 use actix_web::{
     http::{header::ContentType, StatusCode},
     web::{Data, Payload},
     HttpRequest, HttpResponse,
 };
-
-fn render(name: &str, tmpl: &Tera, ctx: &mut Context) -> String {
-    tmpl.render(name, &ctx).unwrap_or_else(|_err| {
-        ctx.insert("error_name", "not found");
-        tmpl.render("error", &ctx).unwrap()
-    })
-}
 
 #[actix_web::get("/_sp/login")]
 pub async fn login(req: HttpRequest, config: Data<Config>, tera: Data<TeraState>) -> HttpResponse {

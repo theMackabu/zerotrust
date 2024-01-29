@@ -1,6 +1,9 @@
-use crate::{auth, config::structs::Config, pages::create_templates};
+mod catch;
+mod errors;
 
+use crate::{auth, config::structs::Config, pages::create_templates};
 use actix_web_static_files::ResourceFiles;
+use errors::Error;
 use futures_util::StreamExt;
 use include_dir::{include_dir, Dir};
 use macros_rs::{clone, string, ternary};
@@ -13,7 +16,7 @@ use actix_web::{
     guard,
     http::StatusCode,
     web::{self, Data, Payload},
-    App, Error, HttpRequest, HttpResponse, HttpServer,
+    App, HttpRequest, HttpResponse, HttpServer,
 };
 
 struct Backend {
@@ -49,19 +52,6 @@ static BACKEND_LIST: Lazy<Backends> = Lazy::new(|| {
     return backends;
 });
 
-// fn error_handlers() -> ErrorHandlers<BoxBody> {
-//     ErrorHandlers::new().handler(StatusCode::NOT_FOUND, not_found)
-// }
-//
-// // Error handler for a 404 Page not found error.
-// fn not_found<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<BoxBody>> {
-//     let response = get_error_response(&res, "Page not found");
-//     Ok(ErrorHandlerResponse::Response(ServiceResponse::new(
-//         res.into_parts().0,
-//         response.map_into_left_body(),
-//     )))
-// }
-
 // add initial setup (no services found & how to config)
 async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<&OnceCell<Config>>, backends: Data<&Lazy<Backends>>) -> Result<HttpResponse, Error> {
     tracing::info!(method = string!(req.method()), "request '{}'", req.uri());
@@ -72,7 +62,7 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
         let name = name.to_str().unwrap_or("");
         let (mut url, providers) = match backends.get(name) {
             Some(item) => (clone!(item.url), clone!(item.providers)),
-            None => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
+            None => return Err(Error::NotFound { message: "Service not found" }),
         };
 
         for provider in providers {
@@ -94,7 +84,7 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
             None => forwarded_req,
         };
 
-        let res = forwarded_req.send_stream(payload).await.map_err(ErrorInternalServerError)?;
+        let res = catch::_try!(forwarded_req.send_stream(payload).await.map_err(ErrorInternalServerError));
         let mut client_response = HttpResponse::build(res.status());
 
         for (header_name, header_value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
@@ -104,11 +94,11 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
         tracing::info!(service = name, status = string!(res.status()), "responded");
         Ok(client_response.streaming(res))
     } else {
-        Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("No service header"))
+        Err(Error::NotFound { message: "No service header" })
     }
 }
 
-async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCell<Config>>, backends: Data<&Lazy<Backends>>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCell<Config>>, backends: Data<&Lazy<Backends>>) -> Result<HttpResponse, Error> {
     tracing::info!(method = string!(req.method()), "websocket '{}'", req.uri());
 
     let config = config.get_ref();
@@ -117,7 +107,7 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCe
         let name = name.to_str().unwrap_or("");
         let mut url = match backends.get(name) {
             Some(item) => clone!(item.url),
-            None => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
+            None => return Err(Error::NotFound { message: "Service not found" }),
         };
 
         url.set_path(req.uri().path());
@@ -131,7 +121,9 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCe
 
         let status = target_response.status().as_u16();
         if status != 101 {
-            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Target did not reply with 101 upgrade")));
+            return Err(Error::ConnectionRefused {
+                message: "Target did not reply with 101 upgrade",
+            });
         }
 
         let mut client_response = HttpResponse::SwitchingProtocols();
@@ -140,7 +132,7 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCe
             client_response.insert_header((header.to_owned(), value.to_owned()));
         }
 
-        let target_upgrade = target_response.upgrade().await?;
+        let target_upgrade = catch::_try!(target_response.upgrade().await);
         let (target_rx, mut target_tx) = tokio::io::split(target_upgrade);
 
         actix_web::rt::spawn(async move {
@@ -157,7 +149,7 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCe
 
         Ok(client_response.streaming(target_stream))
     } else {
-        Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("No service header"))
+        Err(Error::NotFound { message: "No service header" })
     }
 }
 

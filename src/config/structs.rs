@@ -10,6 +10,8 @@ pub struct Config {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
+    #[serde(alias = "max-age")]
+    pub max_age: u32,
     pub database: String,
     pub secret: String,
     pub address: String,
