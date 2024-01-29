@@ -35,15 +35,19 @@ pub(crate) enum Error {
     Generic { status: StatusCode, message: &'static str },
 }
 
+fn create_error(name: &str, msg: &str) -> String {
+    let tera = create_templates();
+    let mut ctx = Context::new();
+
+    ctx.insert("error_message", name);
+    ctx.insert("error_name", msg);
+
+    render("error", &tera.0, &mut ctx)
+}
+
 impl error::ResponseError for Error {
     fn error_response(&self) -> HttpResponse {
-        let tera = create_templates();
-        let mut ctx = Context::new();
-
-        ctx.insert("error_message", &self.to_string());
-        ctx.insert("error_name", &self.status_code().to_string());
-
-        let payload = render("error", &tera.0, &mut ctx);
+        let payload = create_error(&self.status_code().to_string(), &self.to_string());
         let mut res = HttpResponse::build(self.status_code());
 
         return res.content_type(ContentType::html()).body(payload);
@@ -83,7 +87,10 @@ impl FromResidual<Result<Infallible, reqwest::Error>> for Result<HttpResponse, E
     }
 }
 
-pub(crate) fn not_found<B>(_res: dev::ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>, actix_web::Error> {
-    let result = Err(Error::NotFound { message: "Page not found" });
-    result.map_err(|err| error::ErrorNotFound(err))
+pub(crate) fn not_found<B>(res: dev::ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
+    let (req, res) = res.into_parts();
+    let res = res.set_body(create_error("Not Found", "Page not found"));
+    let res = dev::ServiceResponse::new(req, res).map_into_boxed_body();
+
+    Ok(ErrorHandlerResponse::Response(res.map_into_right_body()))
 }
