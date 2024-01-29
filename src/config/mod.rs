@@ -13,6 +13,7 @@ pub fn read(config_path: String) -> Config {
             backends: BTreeMap::new(),
             settings: Settings {
                 database: string!("users.db"),
+                secret: string!("CHANGE ME"),
                 address: string!("127.0.0.1"),
                 port: 8080,
             },

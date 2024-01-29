@@ -4,6 +4,7 @@ mod config;
 mod helpers;
 mod http;
 mod pages;
+mod schema;
 
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::{InfoLevel, Verbosity};

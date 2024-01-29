@@ -70,10 +70,18 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
 
     if let Some(name) = req.headers().get("SelectService") {
         let name = name.to_str().unwrap_or("");
-        let mut url = match backends.get(name) {
-            Some(item) => clone!(item.url),
+        let (mut url, providers) = match backends.get(name) {
+            Some(item) => (clone!(item.url), clone!(item.providers)),
             None => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
         };
+
+        for provider in providers {
+            if provider == "basic" {
+                continue;
+            }
+
+            config.get().unwrap().providers.get(&provider);
+        }
 
         url.set_path(req.uri().path());
         url.set_query(req.uri().query());

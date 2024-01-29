@@ -11,6 +11,7 @@ pub struct Config {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub database: String,
+    pub secret: String,
     pub address: String,
     pub port: u16,
 }
