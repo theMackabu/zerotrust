@@ -13,6 +13,7 @@ use std::{borrow::Cow, collections::BTreeMap};
 
 use actix_web::{
     dev::PeerAddr,
+    error::ErrorInternalServerError,
     guard,
     http::StatusCode,
     middleware::ErrorHandlers,
@@ -85,16 +86,22 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
             None => forwarded_req,
         };
 
-        let res = match forwarded_req.send_stream(payload).await {
-            Ok(res) => res,
-            Err(err) => {
+        let res = catch::_try!(forwarded_req.send_stream(payload).await.map_err(ErrorInternalServerError));
+        let mut client_response = HttpResponse::build(res.status());
+
+        match res.status().as_u16() {
+            400 => {
                 return Err(Error::ConnectionRefused {
-                    message: fmtstr!("Sorry, this page could not be loaded from upstream.\nCode: {err}"),
+                    message: fmtstr!("Sorry, this page could not be loaded from upstream."),
                 })
             }
-        };
-
-        let mut client_response = HttpResponse::build(res.status());
+            404 => {
+                return Err(Error::NotFound {
+                    message: fmtstr!("Sorry, this page could not be found on upstream."),
+                })
+            }
+            _ => {}
+        }
 
         for (header_name, header_value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
             client_response.insert_header((header_name.clone(), header_value.clone()));
