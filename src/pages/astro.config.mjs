@@ -1,9 +1,7 @@
 import tailwind from '@astrojs/tailwind';
 import { defineConfig } from 'astro/config';
-import react from '@astrojs/react';
-import relativeLinks from './links';
 
 export default defineConfig({
-	build: { format: 'file', assets: '_sp/assets' },
-	integrations: [tailwind(), react(), relativeLinks()]
+	integrations: [tailwind()],
+	build: { format: 'file', assets: '_sp/assets' }
 });

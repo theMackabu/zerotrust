@@ -35,19 +35,26 @@ pub(crate) enum Error {
     Generic { status: StatusCode, message: &'static str },
 }
 
-fn create_error(name: &str, msg: &str) -> String {
+fn create_error(code: StatusCode, msg: &str, custom: Option<&str>) -> String {
     let tera = create_templates();
-    let mut ctx = Context::new();
+    let mut page = Context::new();
 
-    ctx.insert("error_message", name);
-    ctx.insert("error_name", msg);
+    let name = match custom {
+        Some(name) => Some(name),
+        None => code.canonical_reason(),
+    }
+    .unwrap_or("Unknown error status");
 
-    render("error", &tera.0, &mut ctx)
+    page.insert("error_name", &name);
+    page.insert("error_message", msg);
+    page.insert("error_code", &code.as_u16());
+
+    render("error", &tera.0, &mut page)
 }
 
 impl error::ResponseError for Error {
     fn error_response(&self) -> HttpResponse {
-        let payload = create_error(&self.status_code().to_string(), &self.to_string());
+        let payload = create_error(self.status_code(), &self.to_string(), None);
         let mut res = HttpResponse::build(self.status_code());
 
         return res.content_type(ContentType::html()).body(payload);
@@ -89,7 +96,9 @@ impl FromResidual<Result<Infallible, reqwest::Error>> for Result<HttpResponse, E
 
 pub(crate) fn not_found<B>(sr: dev::ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
     let (req, res) = sr.into_parts();
-    let res = res.set_body(create_error("Not Found", "Page not found"));
-    let res = dev::ServiceResponse::new(req, res).map_into_boxed_body();
-    Ok(ErrorHandlerResponse::Response(res.map_into_right_body()))
+    let err = create_error(StatusCode::NOT_FOUND, "Sorry, we couldn’t find the page you’re looking for.", Some("Page not found"));
+
+    Ok(ErrorHandlerResponse::Response(
+        dev::ServiceResponse::new(req, res.set_body(err)).map_into_boxed_body().map_into_right_body(),
+    ))
 }

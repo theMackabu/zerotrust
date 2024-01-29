@@ -2,13 +2,14 @@ mod catch;
 mod errors;
 
 use crate::{auth, config::structs::Config, pages::create_templates};
+use actix_files as afs;
 use actix_web_static_files::ResourceFiles;
 use errors::Error;
 use futures_util::StreamExt;
 use include_dir::{include_dir, Dir};
 use macros_rs::{clone, string, ternary};
 use once_cell::sync::{Lazy, OnceCell};
-use std::collections::BTreeMap;
+use std::{borrow::Cow, collections::BTreeMap};
 
 use actix_web::{
     dev::PeerAddr,
@@ -22,10 +23,10 @@ use actix_web::{
 
 struct Backend {
     url: url::Url,
-    providers: Vec<String>,
+    providers: Vec<Cow<'static, str>>,
 }
 
-type Backends = BTreeMap<String, Backend>;
+type Backends = BTreeMap<&'static str, Backend>;
 
 static ASSETS_DIR: Dir<'_> = include_dir!("src/pages/dist/_sp/assets");
 
@@ -42,10 +43,10 @@ static BACKEND_LIST: Lazy<Backends> = Lazy::new(|| {
         let url = format!("{tls}://{}:{}", item.address, item.port);
 
         backends.insert(
-            clone!(name),
+            name,
             Backend {
-                url: url::Url::parse(&url).unwrap(),
                 providers: clone!(item.providers),
+                url: url::Url::parse(&url).unwrap(),
             },
         );
     }
@@ -162,16 +163,17 @@ pub async fn start() -> std::io::Result<()> {
         let files = crate::helpers::build_hashmap(&ASSETS_DIR);
 
         App::new()
-            .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, errors::not_found))
             .app_data(Data::new(&crate::CONFIG))
             .app_data(Data::new(create_templates()))
             .app_data(Data::new(&BACKEND_LIST))
             .service(auth::login)
             .service(ResourceFiles::new("/_sp/assets", files))
+            .service(afs::Files::new("/_sp/static", config.get_static()).index_file("index.html"))
             .service(web::scope("{url:.*}").guard(guard::Header("upgrade", "websocket")).route("", web::to(proxy_ws)))
             .default_service(web::to(proxy))
+            .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, errors::not_found))
     };
 
-    tracing::info!(address = config.settings.address, port = config.settings.port, "server started");
+    tracing::info!(address = config.settings.server.address.to_string(), port = config.settings.server.port, "server started");
     HttpServer::new(app).bind(config.get_address()).unwrap().run().await
 }

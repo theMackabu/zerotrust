@@ -4,5 +4,6 @@ export default {
 	theme: {
 		extend: { fontFamily: { sans: ['Inter var', ...require('tailwindcss/defaultTheme').fontFamily.sans] } }
 	},
+	safelist: [{ pattern: /(text|bg|border)-(\w+)-(\w+)/ }],
 	plugins: [require('@tailwindcss/forms')]
 };

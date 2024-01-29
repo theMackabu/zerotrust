@@ -14,6 +14,7 @@ node_modules
 /bin
 /target
 /config.toml
+/sp_files
 
 # temp
 dist

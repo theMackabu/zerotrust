@@ -1,9 +1,16 @@
 ---
 import '@/styles.css'
-import favicon from '@/public/favicon.svg?url'
 
 interface Props { title: string; }
 const { title } = Astro.props;
+
+export const app = {
+   name: "{{app_name}}",
+   logo: "{{app_logo}}",
+   accent: "{{app_accent}}",
+}
+
+export const pages = `{% for name, url in app_pages %}<a href="{{url}}">{{name}}</a>{% if loop.last == false %}<svg viewBox="0 0 2 2" aria-hidden="true" class="h-0.5 w-0.5 fill-gray-300"><circle cx="1" cy="1" r="1" /></svg>{% endif %}{% endfor %}`;
 ---
 
 <meta charset="utf-8" />
@@ -11,5 +18,5 @@ const { title } = Astro.props;
 <meta name="generator" content={Astro.generator} />
 
 <title>{title}</title>
-<link rel="icon" type="image/svg+xml" href={favicon} />
+<link rel="icon" type="image/svg+xml" href={app.logo} />
 <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
