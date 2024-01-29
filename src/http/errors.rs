@@ -4,8 +4,9 @@ use super::catch::FromResidual;
 use crate::pages::{create_templates, render};
 
 use actix_web::{
-    error,
+    dev, error,
     http::{header::ContentType, StatusCode},
+    middleware::ErrorHandlerResponse,
     HttpResponse,
 };
 
@@ -80,4 +81,9 @@ impl FromResidual<Result<Infallible, reqwest::Error>> for Result<HttpResponse, E
             message: str!(err.to_string()),
         });
     }
+}
+
+pub(crate) fn not_found<B>(_res: dev::ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>, actix_web::Error> {
+    let result = Err(Error::NotFound { message: "Page not found" });
+    result.map_err(|err| error::ErrorNotFound(err))
 }

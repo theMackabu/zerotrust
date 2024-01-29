@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::{convert::Infallible, ops::ControlFlow, task::Poll};
 
 macro_rules! _try {

@@ -15,6 +15,7 @@ use actix_web::{
     error::ErrorInternalServerError,
     guard,
     http::StatusCode,
+    middleware::ErrorHandlers,
     web::{self, Data, Payload},
     App, HttpRequest, HttpResponse, HttpServer,
 };
@@ -161,6 +162,7 @@ pub async fn start() -> std::io::Result<()> {
         let files = crate::helpers::build_hashmap(&ASSETS_DIR);
 
         App::new()
+            .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, errors::not_found))
             .app_data(Data::new(&crate::CONFIG))
             .app_data(Data::new(create_templates()))
             .app_data(Data::new(&BACKEND_LIST))
