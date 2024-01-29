@@ -1,9 +1,8 @@
 use colored::Colorize;
 use macros_rs::{crashln, string};
-use std::{env, fs, path::PathBuf};
 
 pub fn read<T: serde::de::DeserializeOwned>(path: String) -> T {
-    let contents = match fs::read_to_string(&path) {
+    let contents = match std::fs::read_to_string(&path) {
         Ok(contents) => contents,
         Err(err) => crashln!("Cannot find {path}.\n{}", string!(err).white()),
     };

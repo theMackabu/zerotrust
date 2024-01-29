@@ -1,7 +1,6 @@
 body {
-	@apply antialiased;
 	@apply h-full;
-	@apply overscroll-none;
+	@apply antialiased;
 }
 
 html {

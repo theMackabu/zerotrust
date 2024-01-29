@@ -1,6 +1,5 @@
 mod auth;
 mod config;
-mod file;
 mod helpers;
 mod pages;
 
@@ -9,8 +8,10 @@ use awc::Client;
 use config::structs::Config;
 use futures_util::StreamExt;
 use include_dir::{include_dir, Dir};
-use macros_rs::string;
+use macros_rs::{clone, string, ternary};
+use once_cell::sync::Lazy;
 use pages::create_templates;
+use std::collections::BTreeMap;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{filter::LevelFilter, prelude::*};
 use url::Url;
@@ -24,7 +25,38 @@ use actix_web::{
     App, Error, HttpRequest, HttpResponse, HttpServer,
 };
 
+struct Backend {
+    url: Url,
+    providers: Vec<String>,
+}
+
+type Backends = BTreeMap<String, Backend>;
+
 static ASSETS_DIR: Dir<'_> = include_dir!("src/pages/dist/_sp/assets");
+
+static BACKEND_LIST: Lazy<Backends> = Lazy::new(|| {
+    let mut backends: Backends = BTreeMap::new();
+    let config = config::read();
+
+    for (name, item) in config.backends {
+        let tls = match item.tls {
+            None => "http",
+            Some(is_tls) => ternary!(is_tls, "https", "http"),
+        };
+
+        let url = format!("{tls}://{}:{}", item.address, item.port);
+
+        backends.insert(
+            name,
+            Backend {
+                url: Url::parse(&url).unwrap(),
+                providers: item.providers,
+            },
+        );
+    }
+
+    return backends;
+});
 
 // fn error_handlers() -> ErrorHandlers<BoxBody> {
 //     ErrorHandlers::new().handler(StatusCode::NOT_FOUND, not_found)
@@ -40,15 +72,15 @@ static ASSETS_DIR: Dir<'_> = include_dir!("src/pages/dist/_sp/assets");
 // }
 
 // add initial setup (no services found & how to config)
-async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<Config>) -> Result<HttpResponse, Error> {
+async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<Config>, backends: Data<Backends>) -> Result<HttpResponse, Error> {
     tracing::info!(method = string!(req.method()), "request '{}'", req.uri());
 
     let config = config.get_ref();
 
     if let Some(name) = req.headers().get("SelectService") {
-        let mut url = match name.as_bytes() {
-            b"cs27" => Url::parse("http://localhost:9309").unwrap(),
-            _ => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
+        let mut url = match backends.get(name.to_str().unwrap_or("")) {
+            Some(item) => clone!(item.url),
+            None => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
         };
 
         url.set_path(req.uri().path());
@@ -76,16 +108,17 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
     }
 }
 
-pub async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>, backends: Data<Backends>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     tracing::info!(method = string!(req.method()), "websocket '{}'", req.uri());
 
     let config = config.get_ref();
 
     if let Some(name) = req.headers().get("SelectService") {
-        let mut url = match name.as_bytes() {
-            b"cs27" => Url::parse("http://localhost:9309").unwrap(),
-            _ => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
+        let mut url = match backends.get(name.to_str().unwrap_or("")) {
+            Some(item) => clone!(item.url),
+            None => return Ok(HttpResponse::build(StatusCode::NOT_FOUND).body("Service not found")),
         };
+
         url.set_path(req.uri().path());
         url.set_query(req.uri().query());
 
@@ -128,12 +161,14 @@ pub async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Con
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "INFO");
+
     let config = config::read();
 
     let app = || {
         let files = helpers::build_hashmap(&ASSETS_DIR);
 
         App::new()
+            .app_data(Data::new(&BACKEND_LIST))
             .app_data(Data::new(config::read()))
             .app_data(Data::new(create_templates()))
             .service(auth::login)

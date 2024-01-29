@@ -32,4 +32,5 @@ pub struct Location {
     pub providers: Vec<String>,
     pub address: String,
     pub port: u16,
+    pub tls: Option<bool>,
 }

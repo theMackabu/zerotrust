@@ -14,3 +14,6 @@ node_modules
 /bin
 /target
 /config.toml
+
+# temp
+dist

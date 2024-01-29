@@ -1,3 +1,4 @@
+pub mod file;
 pub mod structs;
 
 use colored::Colorize;
@@ -31,7 +32,7 @@ pub fn read() -> Config {
         tracing::info!(path = config_path, created = true, "config");
     }
 
-    crate::file::read(config_path)
+    file::read(config_path)
 }
 
 impl Config {
