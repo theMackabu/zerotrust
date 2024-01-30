@@ -21,6 +21,7 @@ pub fn read(config_path: String) -> Config {
                 secret: "CHANGE ME".into(),
                 max_age: 604800,
                 server: Server {
+                    prefix: "_sp".into(),
                     files: "sp_files".into(),
                     address: "127.0.0.1".into(),
                     port: 8080,

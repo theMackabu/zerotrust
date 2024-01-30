@@ -24,6 +24,7 @@ pub fn render(name: &str, tmpl: &Tera, ctx: &mut Context) -> String {
     ctx.insert("app_logo", &config.settings.app.logo);
     ctx.insert("app_accent", &config.settings.app.accent);
     ctx.insert("app_pages", &config.settings.app.pages);
+    ctx.insert("prefix", &config.settings.server.prefix);
 
     match &config.settings.app.favicon {
         Some(icon) => ctx.insert("app_icon", &icon),

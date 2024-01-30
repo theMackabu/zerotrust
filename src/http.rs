@@ -28,7 +28,7 @@ struct Backend {
 
 type Backends = BTreeMap<&'static str, Backend>;
 
-static ASSETS_DIR: Dir<'_> = include_dir!("src/pages/dist/_sp/assets");
+static ASSETS_DIR: Dir<'_> = include_dir!("src/pages/dist/assets_provider");
 
 static BACKEND_LIST: Lazy<Backends> = Lazy::new(|| {
     let mut backends: Backends = BTreeMap::new();
@@ -174,16 +174,17 @@ pub async fn start() -> std::io::Result<()> {
     let config = crate::CONFIG.get().unwrap();
 
     let app = || {
+        let prefix = config.settings.server.prefix.clone();
         let files = crate::helpers::build_hashmap(&ASSETS_DIR);
 
         App::new()
             .app_data(Data::new(&crate::CONFIG))
             .app_data(Data::new(create_templates()))
             .app_data(Data::new(&BACKEND_LIST))
-            .service(auth::login)
-            .service(auth::form_handler)
-            .service(ResourceFiles::new("/_sp/assets", files))
-            .service(afs::Files::new("/_sp/static", config.get_static()).index_file("index.html"))
+            .route(fmtstr!("/{prefix}/login"), web::get().to(auth::login))
+            .route(fmtstr!("/{prefix}/login"), web::post().to(auth::form_handler))
+            .service(ResourceFiles::new(fmtstr!("/{prefix}/assets"), files))
+            .service(afs::Files::new(fmtstr!("/{prefix}/static"), config.get_static()).index_file("index.html"))
             .service(web::scope("{url:.*}").guard(guard::Header("upgrade", "websocket")).route("", web::to(proxy_ws)))
             .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, errors::not_found))
             .default_service(web::to(proxy))

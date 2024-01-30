@@ -15,13 +15,12 @@ use actix_web::{
 };
 
 #[derive(Debug, Deserialize)]
-struct Login {
+pub struct Login {
     email: String,
     password: String,
     remember: Option<String>,
 }
 
-#[actix_web::get("/_sp/login")]
 pub async fn login(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data<TeraState>) -> HttpResponse {
     tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
 
@@ -45,7 +44,6 @@ pub async fn login(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data
     HttpResponse::build(StatusCode::OK).content_type(ContentType::html()).body(payload)
 }
 
-#[actix_web::post("/_sp/login")]
 pub async fn form_handler(req: HttpRequest, conn: ConnectionInfo, tera: Data<TeraState>, body: Form<Login>) -> HttpResponse {
     tracing::info!(method = string!(req.method()), "login '{}'", req.uri());
 

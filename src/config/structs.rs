@@ -22,6 +22,7 @@ pub struct Settings {
 pub struct Server {
     #[serde(alias = "static")]
     pub files: Cow<'static, str>,
+    pub prefix: Cow<'static, str>,
     pub address: Cow<'static, str>,
     pub port: u16,
 }
