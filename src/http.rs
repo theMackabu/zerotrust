@@ -1,5 +1,6 @@
-mod catch;
-mod errors;
+pub mod catch;
+pub mod errors;
+pub mod token;
 
 use crate::{auth, config::structs::Config, pages::create_templates};
 use actix_files as afs;
@@ -172,8 +173,9 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCe
 #[actix_web::main]
 pub async fn start() -> std::io::Result<()> {
     let config = crate::CONFIG.get().unwrap();
+    let pool = crate::config::db::init_db();
 
-    let app = || {
+    let app = move || {
         let prefix = config.settings.server.prefix.clone();
         let files = crate::helpers::build_hashmap(&ASSETS_DIR);
 
@@ -181,13 +183,19 @@ pub async fn start() -> std::io::Result<()> {
             .app_data(Data::new(&crate::CONFIG))
             .app_data(Data::new(create_templates()))
             .app_data(Data::new(&BACKEND_LIST))
+            .app_data(Data::new(pool.clone()))
             .route(fmtstr!("/{prefix}/login"), web::get().to(auth::login))
             .route(fmtstr!("/{prefix}/login"), web::post().to(auth::form_handler))
             .service(ResourceFiles::new(fmtstr!("/{prefix}/assets"), files))
             .service(afs::Files::new(fmtstr!("/{prefix}/static"), config.get_static()).index_file("index.html"))
-            .service(web::scope("{url:.*}").guard(guard::Header("upgrade", "websocket")).route("", web::to(proxy_ws)))
             .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, errors::not_found))
-            .default_service(web::to(proxy))
+            .service(
+                web::scope("{url:.*}")
+                    .guard(guard::Header("upgrade", "websocket"))
+                    .route("", web::to(proxy_ws))
+                    .wrap(crate::auth::middleware::Authentication),
+            )
+            .default_service(web::to(proxy).wrap(crate::auth::middleware::Authentication))
     };
 
     tracing::info!(address = config.settings.server.address.to_string(), port = config.settings.server.port, "server started");

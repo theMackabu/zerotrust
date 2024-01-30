@@ -3,6 +3,7 @@ mod cli;
 mod config;
 mod helpers;
 mod http;
+mod models;
 mod pages;
 mod schema;
 

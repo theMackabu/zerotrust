@@ -1,3 +1,5 @@
+pub mod middleware;
+
 use crate::config::structs::Config;
 use crate::pages::{render, TeraState};
 use macros_rs::string;
@@ -24,6 +26,7 @@ pub struct Login {
 pub async fn login(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data<TeraState>) -> HttpResponse {
     tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
 
+    let config = config.get_ref();
     let tera = tera.get_ref();
     let mut page = Context::new();
 

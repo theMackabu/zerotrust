@@ -35,7 +35,7 @@ pub(crate) enum Error {
     Generic { status: StatusCode, message: &'static str },
 }
 
-fn create_error(code: StatusCode, msg: &str, custom: Option<&str>) -> String {
+pub fn create_error(code: StatusCode, msg: &str, custom: Option<&str>) -> String {
     let tera = create_templates();
     let mut page = Context::new();
 

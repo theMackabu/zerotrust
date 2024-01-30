@@ -15,7 +15,8 @@ table! {
         email -> Varchar,
         password -> Varchar,
         login_session -> Varchar,
-        providers -> Json,
+        providers -> Varchar,
+        services -> Varchar,
     }
 }
 

@@ -13,7 +13,7 @@ pub struct Settings {
     #[serde(alias = "max-age")]
     pub app: App,
     pub server: Server,
-    pub max_age: u32,
+    pub max_age: i64,
     pub database: Cow<'static, str>,
     pub secret: Cow<'static, str>,
 }
