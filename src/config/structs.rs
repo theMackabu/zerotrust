@@ -30,6 +30,7 @@ pub struct Server {
 pub struct App {
     pub name: Cow<'static, str>,
     pub logo: Cow<'static, str>,
+    pub favicon: Option<Cow<'static, str>>,
     pub accent: Cow<'static, str>,
     pub pages: BTreeMap<Cow<'static, str>, Cow<'static, str>>,
 }

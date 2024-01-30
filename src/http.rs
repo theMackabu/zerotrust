@@ -181,6 +181,7 @@ pub async fn start() -> std::io::Result<()> {
             .app_data(Data::new(create_templates()))
             .app_data(Data::new(&BACKEND_LIST))
             .service(auth::login)
+            .service(auth::form_handler)
             .service(ResourceFiles::new("/_sp/assets", files))
             .service(afs::Files::new("/_sp/static", config.get_static()).index_file("index.html"))
             .service(web::scope("{url:.*}").guard(guard::Header("upgrade", "websocket")).route("", web::to(proxy_ws)))

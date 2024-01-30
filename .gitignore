@@ -1,5 +1,6 @@
 # web
 node_modules
+safelist.tmp
 
 # maid
 /.maid/cache

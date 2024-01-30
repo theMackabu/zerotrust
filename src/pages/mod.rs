@@ -25,6 +25,11 @@ pub fn render(name: &str, tmpl: &Tera, ctx: &mut Context) -> String {
     ctx.insert("app_accent", &config.settings.app.accent);
     ctx.insert("app_pages", &config.settings.app.pages);
 
+    match &config.settings.app.favicon {
+        Some(icon) => ctx.insert("app_icon", &icon),
+        None => ctx.insert("app_icon", &config.settings.app.logo),
+    }
+
     tmpl.render(name, &ctx).unwrap_or_else(|_err| {
         ctx.insert("error_code", &404);
         ctx.insert("error_name", "Template not found");

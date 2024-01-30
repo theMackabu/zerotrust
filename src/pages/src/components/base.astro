@@ -7,6 +7,7 @@ const { title } = Astro.props;
 export const app = {
    name: "{{app_name}}",
    logo: "{{app_logo}}",
+   favicon: "{{app_icon}}",
    accent: "{{app_accent}}",
 }
 
@@ -18,5 +19,5 @@ export const pages = `{% for name, url in app_pages %}<a href="{{url}}">{{name}}
 <meta name="generator" content={Astro.generator} />
 
 <title>{title}</title>
-<link rel="icon" type="image/svg+xml" href={app.logo} />
+<link rel="icon" type="image" href={app.favicon} />
 <link rel="stylesheet" href="https://rsms.me/inter/inter.css">

@@ -28,6 +28,7 @@ pub fn read(config_path: String) -> Config {
                 app: App {
                     name: "Secure Proxy".into(),
                     logo: "/_sp/static/logo.png".into(),
+                    favicon: None,
                     accent: "indigo".into(),
                     pages: example_pages,
                 },
