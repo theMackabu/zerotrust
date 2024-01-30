@@ -184,8 +184,8 @@ pub async fn start() -> std::io::Result<()> {
             .service(ResourceFiles::new("/_sp/assets", files))
             .service(afs::Files::new("/_sp/static", config.get_static()).index_file("index.html"))
             .service(web::scope("{url:.*}").guard(guard::Header("upgrade", "websocket")).route("", web::to(proxy_ws)))
-            .default_service(web::to(proxy))
             .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, errors::not_found))
+            .default_service(web::to(proxy))
     };
 
     tracing::info!(address = config.settings.server.address.to_string(), port = config.settings.server.port, "server started");
