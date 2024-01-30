@@ -31,6 +31,9 @@ dependencies:
     version: 5.3.3
 
 devDependencies:
+  glob:
+    specifier: ^10.3.10
+    version: 10.3.10
   rimraf:
     specifier: ^5.0.5
     version: 5.0.5
