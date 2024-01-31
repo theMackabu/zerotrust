@@ -2,8 +2,6 @@ pub mod catch;
 pub mod errors;
 pub mod token;
 
-use crate::config;
-use crate::{auth, config::structs::Config, pages::create_templates};
 use actix_files as afs;
 use actix_web_static_files::ResourceFiles;
 use errors::Error;
@@ -12,6 +10,13 @@ use include_dir::{include_dir, Dir};
 use macros_rs::{clone, fmtstr, string, ternary};
 use once_cell::sync::{Lazy, OnceCell};
 use std::{borrow::Cow, collections::BTreeMap};
+
+use crate::{
+    app,
+    auth::{self, middleware},
+    config::{self, structs::Config},
+    pages::create_templates,
+};
 
 use actix_web::{
     dev::PeerAddr,
@@ -184,8 +189,11 @@ pub async fn start(pool: config::db::Pool) -> std::io::Result<()> {
             .app_data(Data::new(create_templates()))
             .app_data(Data::new(&BACKEND_LIST))
             .app_data(Data::new(pool.clone()))
-            .route(fmtstr!("/{prefix}/login"), web::get().to(auth::login))
-            .route(fmtstr!("/{prefix}/login"), web::post().to(auth::form_handler))
+            .route(fmtstr!("/{prefix}/login"), web::get().guard(middleware::token_guard).to(auth::login))
+            .route(fmtstr!("/{prefix}/logout"), web::get().to(auth::logout).wrap(middleware::Authentication))
+            .route(fmtstr!("/{prefix}/app"), web::get().to(app::dashboard).wrap(middleware::Authentication))
+            .route(fmtstr!("/{prefix}/api/login"), web::post().guard(middleware::token_guard).to(auth::login_handler))
+            .route(fmtstr!("/{prefix}/api/logout"), web::post().to(auth::logout_handler).wrap(middleware::Authentication))
             .service(ResourceFiles::new(fmtstr!("/{prefix}/assets"), files))
             .service(afs::Files::new(fmtstr!("/{prefix}/static"), config.get_static()).index_file("index.html"))
             .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, errors::not_found))
@@ -193,9 +201,9 @@ pub async fn start(pool: config::db::Pool) -> std::io::Result<()> {
                 web::scope("{url:.*}")
                     .guard(guard::Header("upgrade", "websocket"))
                     .route("", web::to(proxy_ws))
-                    .wrap(crate::auth::middleware::Authentication),
+                    .wrap(middleware::Authentication),
             )
-            .default_service(web::to(proxy).wrap(crate::auth::middleware::Authentication))
+            .default_service(web::to(proxy).wrap(middleware::Authentication))
     };
 
     tracing::info!(address = config.settings.server.address.to_string(), port = config.settings.server.port, "server started");

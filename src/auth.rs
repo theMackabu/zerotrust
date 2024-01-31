@@ -3,23 +3,30 @@ pub mod middleware;
 use macros_rs::string;
 use once_cell::sync::OnceCell;
 use serde::Deserialize;
-use serde_json::json;
 use tera::Context;
 
 use crate::{
-    account,
     config::db::Pool,
     config::structs::Config,
-    http::errors::Error,
-    models::user::LoginDTO,
+    http::{
+        errors::{Error, JsonError},
+        token,
+    },
+    models::{
+        token::UserToken,
+        user::{LoginDTO, User},
+    },
     pages::{render, TeraState},
 };
 
 use actix_web::{
-    cookie::{time::Duration, Cookie},
+    cookie::{
+        time::{Duration, OffsetDateTime},
+        Cookie,
+    },
     dev::ConnectionInfo,
     http::{header::ContentType, StatusCode},
-    web::{Data, Form},
+    web::{Data, Json},
     HttpRequest, HttpResponse,
 };
 
@@ -27,8 +34,22 @@ use actix_web::{
 pub struct Login {
     email: String,
     password: String,
-    remember: Option<String>,
+    remember: bool,
 }
+
+macro_rules! send {
+    () => {
+        HttpResponse::build(StatusCode::OK).content_type(ContentType::html())
+    };
+}
+
+macro_rules! ok {
+    () => {
+        HttpResponse::build(StatusCode::OK)
+    };
+}
+
+fn remove_suffix<'a>(s: &'a str, suffix: &str) -> &'a str { s.split(suffix).next().unwrap_or(s) }
 
 pub async fn login(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data<TeraState>) -> HttpResponse {
     tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
@@ -37,71 +58,83 @@ pub async fn login(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data
     let tera = tera.get_ref();
     let mut page = Context::new();
 
-    let name = match req.headers().get("SelectService") {
-        Some(name) => name.to_str().unwrap_or("(none)"),
-        None => "(none)",
+    match req.headers().get("SelectService") {
+        None => page.insert("service_name", "(no service selected)"),
+        Some(name) => page.insert("service_name", name.to_str().unwrap_or("(service name error)")),
     };
 
-    println!("{:?}", req.cookie("sp_token"));
-
-    page.insert("service_name", name);
-    page.insert("logged_in", &json!(false));
-    page.insert("button_status", "enabled");
-    page.insert("email_placeholder", &"");
-    page.insert("remember_checked", &"");
-    page.insert("password_placeholder", &"");
-
-    let payload = render("login", &tera.0, &mut page);
-
-    HttpResponse::build(StatusCode::OK).content_type(ContentType::html()).body(payload)
+    send!().body(render("login", &tera.0, &mut page))
 }
 
-pub async fn form_handler(req: HttpRequest, conn: ConnectionInfo, body: Form<Login>, pool: Data<Pool>, tera: Data<TeraState>) -> Result<HttpResponse, Error> {
-    tracing::info!(method = string!(req.method()), "login '{}'", req.uri());
+pub async fn login_handler(req: HttpRequest, conn: ConnectionInfo, body: Json<Login>, pool: Data<Pool>) -> Result<HttpResponse, JsonError> {
+    tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
 
     let email = body.email.to_lowercase();
     let password = body.password.clone();
     let remember = body.remember.clone();
 
+    let login_dto = LoginDTO { password, username_or_email: email };
+
+    match User::login(login_dto, &mut pool.get().unwrap()) {
+        Some(logged_user) => {
+            let token = UserToken::generate_token(&logged_user);
+
+            if logged_user.login_session.is_empty() {
+                Err(JsonError {
+                    status: 401,
+                    message: "Wrong username or password, please try again.",
+                })
+            } else {
+                let cookie_builder = Cookie::build("sp_token", token).domain(remove_suffix(conn.host(), ":")).secure(false).path("/").http_only(true);
+
+                let cookie = match remember {
+                    true => cookie_builder.max_age(Duration::seconds(604800)).finish(),
+                    false => cookie_builder.expires(None).finish(),
+                };
+
+                Ok(ok!().cookie(cookie).finish())
+            }
+        }
+        None => Err(JsonError {
+            status: 401,
+            message: "Wrong username or password, please try again.",
+        }),
+    }
+}
+
+pub async fn logout(req: HttpRequest, tera: Data<TeraState>) -> HttpResponse {
+    tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
+
     let tera = tera.get_ref();
     let mut page = Context::new();
 
-    let name = match req.headers().get("SelectService") {
-        Some(name) => name.to_str().unwrap_or("(none)"),
-        None => "(none)",
+    match req.headers().get("SelectService") {
+        None => page.insert("service_name", "(no service selected)"),
+        Some(name) => page.insert("service_name", name.to_str().unwrap_or("(service name error)")),
     };
 
-    match remember.unwrap_or(string!("off")).as_str() {
-        "on" => page.insert("remember_checked", &"checked"),
-        _ => page.insert("remember_checked", &""),
-    }
+    send!().body(render("logout", &tera.0, &mut page))
+}
 
-    page.insert("service_name", name);
-    page.insert("logged_in", &json!(true));
-    page.insert("button_status", "disabled");
-    page.insert("email_placeholder", &email);
-    page.insert("password_placeholder", &"•".repeat(password.len()));
+pub async fn logout_handler(req: HttpRequest, pool: Data<Pool>) -> Result<HttpResponse, Error> {
+    tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
 
-    let payload = render("login", &tera.0, &mut page);
-    let login_dto = LoginDTO { password, username_or_email: email };
-
-    match account::login(login_dto, &pool) {
-        Ok(res) => {
-            println!("{:?}", conn.host());
-
-            let cookie = Cookie::build("sp_token", res.token)
-                .max_age(Duration::hours(10))
-                // .expires(None) for dont remember me
-                .domain(conn.host())
-                .secure(false)
-                .path("/")
-                .http_only(true)
-                .finish();
-            Ok(HttpResponse::build(StatusCode::OK).content_type(ContentType::html()).cookie(cookie).body(payload))
+    if let Some(cookie) = req.cookie("sp_token") {
+        if let Ok(token_data) = token::decode_token(cookie.value().to_string()) {
+            if let Ok(username) = token::verify_token(&token_data, &pool) {
+                if let Ok(user) = User::find_user_by_username(&username, &mut pool.get().unwrap()) {
+                    User::logout(user.id, &mut pool.get().unwrap());
+                    return Ok(ok!().finish());
+                }
+            }
         }
-        Err(err) => {
-            println!("{err:?}");
-            Err(err)
-        }
+
+        Err(Error::InternalError {
+            message: "Error while processing token, please try again!",
+        })
+    } else {
+        Err(Error::BadClientData {
+            message: "Token missing from request",
+        })
     }
 }

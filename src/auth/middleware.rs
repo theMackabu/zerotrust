@@ -1,15 +1,18 @@
 use actix_service::forward_ready;
 use actix_web::body::EitherBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::http::StatusCode;
 use actix_web::web::Data;
-use actix_web::Error;
 use actix_web::HttpResponse;
+use actix_web::{guard::GuardContext, http::header::HeaderValue};
+use actix_web::{http::header, Error};
 use futures::future::{ok, LocalBoxFuture, Ready};
+use macros_rs::fmtstr;
+use std::collections::BTreeMap;
 
 use crate::{
-    config::db::Pool,
-    http::{errors, token},
+    config::db::{self, Pool},
+    http::token,
+    models::user::User,
 };
 
 pub struct Authentication;
@@ -47,26 +50,51 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         if let Some(pool) = req.app_data::<Data<Pool>>() {
-            if let Some(authen_header) = req.headers().get("Authorization") {
-                if let Ok(authen_str) = authen_header.to_str() {
-                    if authen_str.starts_with("bearer") || authen_str.starts_with("Bearer") {
-                        let token = authen_str[6..authen_str.len()].trim();
-                        if let Ok(token_data) = token::decode_token(token.to_string()) {
-                            if token::verify_token(&token_data, pool).is_ok() {
-                                let res = self.service.call(req);
-                                return Box::pin(async move { res.await.map(ServiceResponse::map_into_left_body) });
-                            }
-                        }
+            if let Some(cookie) = req.cookie("sp_token") {
+                let token = cookie.value();
+                if let Ok(token_data) = token::decode_token(token.to_string()) {
+                    if token::verify_token(&token_data, pool).is_ok() {
+                        let res = self.service.call(req);
+                        return Box::pin(async move { res.await.map(ServiceResponse::map_into_left_body) });
                     }
                 }
             }
         }
 
+        let config = crate::CONFIG.get().unwrap();
+        let prefix = config.settings.server.prefix.clone();
         let (request, _pl) = req.into_parts();
-        let response = HttpResponse::Unauthorized()
-            .body(errors::create_error(StatusCode::UNAUTHORIZED, "Sorry, but this upstream resource is restricted.", Some("Unauthorized")))
+
+        let response = HttpResponse::TemporaryRedirect()
+            .insert_header((header::LOCATION, fmtstr!("/{prefix}/login")))
+            .finish()
             .map_into_right_body();
 
         return Box::pin(async { Ok(ServiceResponse::new(request, response)) });
+    }
+}
+
+pub fn token_guard(ctx: &GuardContext<'_>) -> bool {
+    let pool = crate::POOL.get().unwrap();
+    let empty_header = HeaderValue::from_static("");
+    let cookie_string = ctx.head().headers().get("cookie").unwrap_or(&empty_header).to_str().unwrap_or("");
+
+    if !cookie_string.is_empty() {
+        let cookies: BTreeMap<&str, &str> = cookie_string
+            .split("; ")
+            .map(|pair| pair.trim().split("=").collect::<Vec<&str>>())
+            .map(|vec| (vec[0], vec[1]))
+            .collect();
+
+        if cookies.contains_key("sp_token") {
+            match token::decode_token(cookies.get("sp_token").unwrap().to_string()) {
+                Ok(token) => !User::is_valid_login_session(&token.claims, &mut pool.get().unwrap()),
+                Err(_) => true,
+            }
+        } else {
+            return true;
+        }
+    } else {
+        return true;
     }
 }

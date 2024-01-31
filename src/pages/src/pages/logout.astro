@@ -1,0 +1,38 @@
+---
+import Footer from '@/components/footer.astro';
+import Base, { app } from '@/components/base.astro';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+   <head><Base title={app.service.name + " | Sign out?"} /></head>
+   <div class="grid grid-cols-1 h-screen place-items-center">
+     <div class="sm:mx-auto w-full sm:max-w-md p-4 sm:p-12 justify-center">
+       <img class="h-10 w-auto" src={app.logo} alt={app.name}>
+       <h2 class="mt-6 text-left text-2xl font-bold leading-9 tracking-tight text-zinc-900">Are you sure?</h2>
+       <h3 class="-mt-1 text-left text-base font-semibold leading-9 tracking-tight text-zinc-600">Sign out of {app.service.name}</h3>
+        <div class="mt-4">
+           <button
+             type="button"
+             class="logout transition inline-flex w-full justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
+             Log out
+           </button>
+           <button
+             type="button"
+             class="cancel transition mt-3 inline-flex w-full justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:ml-3 sm:mt-0 sm:w-auto">
+             Cancel
+           </button>
+        </div>
+     </div>
+     <Footer />
+   </div>
+</html>
+
+
+<script is:inline>   
+   const cancel = document.querySelector('button.cancel');
+   const logout = document.querySelector('button.logout');
+   
+   cancel.addEventListener('click', () => (window.location.href = '/'));
+   logout.addEventListener('click', () => fetch("/{{prefix}}/api/logout", { method: 'POST'}) .then(() => window.location.href = '/'));
+</script>

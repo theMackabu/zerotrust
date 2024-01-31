@@ -10,6 +10,7 @@ pub fn create_templates() -> TeraState {
     tera.add_raw_templates(vec![
         ("error", include_str!("dist/error.html")),
         ("login", include_str!("dist/login.html")),
+        ("logout", include_str!("dist/logout.html")),
         ("provider", include_str!("dist/provider.html")),
     ])
     .unwrap();
@@ -20,6 +21,9 @@ pub fn create_templates() -> TeraState {
 pub fn render(name: &str, tmpl: &Tera, ctx: &mut Context) -> String {
     let config = crate::CONFIG.get().unwrap();
 
+    ctx.insert("build_hash", env!("GIT_HASH"));
+    ctx.insert("build_profile", env!("PROFILE"));
+    ctx.insert("build_version", env!("CARGO_PKG_VERSION"));
     ctx.insert("app_name", &config.settings.app.name);
     ctx.insert("app_logo", &config.settings.app.logo);
     ctx.insert("app_accent", &config.settings.app.accent);

@@ -1,11 +1,12 @@
 ---
-import { pages } from '@/components/base.astro';
+import { app, pages } from '@/components/base.astro';
 ---
 
 <footer class="sticky w-full justify-between self-end lg:col-span-2 lg:col-start-1 lg:row-start-3">
-   <div class="border-t border-zinc-100 bg-zinc-50 py-5">
+   <div class="border-t border-zinc-100 bg-zinc-50 py-4">
       <nav class="mx-auto flex w-full max-w-7xl items-center gap-x-4 px-6 text-sm leading-7 text-zinc-600 lg:px-8">
          <Fragment set:html={pages} />
+         <span class="ml-auto text-xs text-zinc-500">v{app.build.version} ({app.build.hash}-{app.build.profile})</span>
       </nav>
    </div>
 </footer>

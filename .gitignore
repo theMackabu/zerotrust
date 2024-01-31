@@ -18,6 +18,7 @@ safelist.tmp
 /sp_files
 /*.db
 /*.db-*
+/*.todo
 
 # temp
 dist

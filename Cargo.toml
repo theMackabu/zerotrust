@@ -1,6 +1,6 @@
 [package]
 name = "secure_proxy"
-version = "0.1.0"
+version = "0.2.1"
 edition = "2021"
 
 [dependencies]
@@ -10,6 +10,7 @@ tera = "1.19.1"
 clap = "4.4.18"
 colored = "2.1.0"
 bcrypt = "0.15.0"
+inquire = "0.6.2"
 tracing = "0.1.40"
 futures = "0.3.30"
 macros-rs = "0.5.2"
@@ -23,6 +24,7 @@ jsonwebtoken = "9.2.0"
 derive_more = "0.99.17"
 futures-util = "0.3.30"
 actix-service = "2.0.2"
+diesel_migrations = "2.1.0"
 tracing-subscriber = "0.3.18"
 clap-verbosity-flag = "2.1.2"
 actix-web-static-files = "4.0.1"
@@ -37,7 +39,6 @@ include_dir = { version = "0.7.3", features = ["metadata"] }
 actix-web = { version = "4.4.1", features = ["secure-cookies"] }
 diesel = { version = "2.1.4", features = ["r2d2", "sqlite", "chrono"] }
 reqwest = { version = "0.11.23", default-features = false, features = ["stream", "rustls-tls"] }
-diesel_migrations = "2.1.0"
 
 [build-dependencies]
 chrono = "0.4.33"

@@ -2,6 +2,7 @@
 
 use super::catch::FromResidual;
 use crate::pages::{create_templates, render};
+use serde::Serialize;
 
 use actix_web::{
     dev, error,
@@ -35,6 +36,13 @@ pub(crate) enum Error {
     Generic { status: StatusCode, message: &'static str },
 }
 
+#[derive(Debug, Display, Serialize, Error)]
+#[display(fmt = "{}", message)]
+pub(crate) struct JsonError {
+    pub(crate) status: u16,
+    pub(crate) message: &'static str,
+}
+
 pub fn create_error(code: StatusCode, msg: &str, custom: Option<&str>) -> String {
     let tera = create_templates();
     let mut page = Context::new();
@@ -50,6 +58,13 @@ pub fn create_error(code: StatusCode, msg: &str, custom: Option<&str>) -> String
     page.insert("error_code", &code.as_u16());
 
     render("error", &tera.0, &mut page)
+}
+
+impl error::ResponseError for JsonError {
+    fn error_response(&self) -> HttpResponse {
+        let mut res = HttpResponse::build(StatusCode::from_u16(self.status).unwrap_or(StatusCode::OK));
+        return res.json(self);
+    }
 }
 
 impl error::ResponseError for Error {

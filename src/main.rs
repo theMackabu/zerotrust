@@ -1,4 +1,4 @@
-mod account;
+mod app;
 mod auth;
 mod cli;
 mod config;
@@ -10,7 +10,7 @@ mod schema;
 
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
-use config::structs::Config;
+use config::{db::Pool, structs::Config};
 use macros_rs::{crashln, str};
 use once_cell::sync::OnceCell;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
@@ -58,6 +58,7 @@ enum Commands {
     },
 }
 
+pub static POOL: OnceCell<Pool> = OnceCell::new();
 pub static CONFIG: OnceCell<Config> = OnceCell::new();
 
 fn main() {
@@ -90,6 +91,10 @@ fn main() {
     let pool = config::db::init_db();
     config::db::run_migrations(&mut pool.get().unwrap());
 
+    if let Err(err) = POOL.set(pool.clone()) {
+        crashln!("Failed to set config!\n{:?}", err)
+    };
+
     match cli.command {
         Commands::Start => {
             if let Err(err) = http::start(pool) {
@@ -98,11 +103,27 @@ fn main() {
         }
         Commands::User { command } => match command {
             User::Add { name } => {
+                // move to cli.rs
+                use inquire::{min_length, Confirm, Password, PasswordDisplayMode, Text};
+
+                let email = Text::new("email:").prompt().unwrap();
+                let admin = Confirm::new("admin?").with_default(false).with_help_message("This user has admin powers").prompt().unwrap();
+
+                let password = Password::new("password:")
+                    .with_display_toggle_enabled()
+                    .with_display_mode(PasswordDisplayMode::Masked)
+                    .with_validator(min_length!(10))
+                    .with_formatter(&|_| String::from("Matched"))
+                    .with_help_message("It is recommended to generate a new one only for this purpose")
+                    .with_custom_confirmation_error_message("The passwords don't match.")
+                    .prompt()
+                    .unwrap();
+
                 let user_dto = models::user::UserDTO {
-                    admin: true,
+                    admin,
+                    password,
                     username: name.to_string(),
-                    email: "test@test.com".to_string().to_lowercase(),
-                    password: "test".to_string(),
+                    email: email.to_lowercase(),
                     providers: serde_json::json!(["basic"]).to_string(),
                     services: serde_json::json!([]).to_string(),
                 };
