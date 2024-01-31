@@ -1,3 +1,4 @@
+mod account;
 mod auth;
 mod cli;
 mod config;
@@ -82,18 +83,35 @@ fn main() {
         .with(formatting_layer)
         .init();
 
+    if let Err(err) = CONFIG.set(config::read(cli.config)) {
+        crashln!("Failed to set config!\n{:?}", err)
+    };
+
+    let pool = config::db::init_db();
+    config::db::run_migrations(&mut pool.get().unwrap());
+
     match cli.command {
         Commands::Start => {
-            if let Err(err) = CONFIG.set(config::read(cli.config)) {
-                crashln!("Failed to set config!\n{:?}", err)
-            };
-
-            if let Err(err) = http::start() {
+            if let Err(err) = http::start(pool) {
                 crashln!("Failed to start server!\n{:?}", err)
             };
         }
         Commands::User { command } => match command {
-            User::Add { name } => {}
+            User::Add { name } => {
+                let user_dto = models::user::UserDTO {
+                    admin: true,
+                    username: name.to_string(),
+                    email: "test@test.com".to_string().to_lowercase(),
+                    password: "test".to_string(),
+                    providers: serde_json::json!(["basic"]).to_string(),
+                    services: serde_json::json!([]).to_string(),
+                };
+
+                match models::user::User::signup(user_dto, &mut pool.get().unwrap()) {
+                    Ok(message) => println!("{message}"),
+                    Err(err) => crashln!("Failed to add user, {err}"),
+                }
+            }
             User::Remove { name } => {}
             User::Reset { name } => {}
             User::Link { name } => {}

@@ -37,6 +37,7 @@ include_dir = { version = "0.7.3", features = ["metadata"] }
 actix-web = { version = "4.4.1", features = ["secure-cookies"] }
 diesel = { version = "2.1.4", features = ["r2d2", "sqlite", "chrono"] }
 reqwest = { version = "0.11.23", default-features = false, features = ["stream", "rustls-tls"] }
+diesel_migrations = "2.1.0"
 
 [build-dependencies]
 chrono = "0.4.33"

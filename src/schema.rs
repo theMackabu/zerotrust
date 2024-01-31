@@ -1,6 +1,4 @@
-use diesel::{allow_tables_to_appear_in_same_query, joinable, table};
-
-table! {
+diesel::table! {
     login_history (id) {
         id -> Integer,
         user_id -> Integer,
@@ -8,17 +6,18 @@ table! {
     }
 }
 
-table! {
+diesel::table! {
     users (id) {
         id -> Integer,
-        username -> Varchar,
-        email -> Varchar,
-        password -> Varchar,
-        login_session -> Varchar,
-        providers -> Varchar,
-        services -> Varchar,
+        admin -> Bool,
+        username -> Text,
+        email -> Text,
+        password -> Text,
+        providers -> Text,
+        services -> Text,
+        login_session -> Text,
     }
 }
 
-joinable!(login_history -> users (user_id));
-allow_tables_to_appear_in_same_query!(login_history, users);
+diesel::joinable!(login_history -> users (user_id));
+diesel::allow_tables_to_appear_in_same_query!(login_history, users,);

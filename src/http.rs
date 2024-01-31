@@ -2,6 +2,7 @@ pub mod catch;
 pub mod errors;
 pub mod token;
 
+use crate::config;
 use crate::{auth, config::structs::Config, pages::create_templates};
 use actix_files as afs;
 use actix_web_static_files::ResourceFiles;
@@ -171,9 +172,8 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCe
 }
 
 #[actix_web::main]
-pub async fn start() -> std::io::Result<()> {
+pub async fn start(pool: config::db::Pool) -> std::io::Result<()> {
     let config = crate::CONFIG.get().unwrap();
-    let pool = crate::config::db::init_db();
 
     let app = move || {
         let prefix = config.settings.server.prefix.clone();

@@ -12,6 +12,7 @@ use crate::{
 #[derive(Identifiable, Queryable, Serialize, Deserialize)]
 pub struct User {
     pub id: i32,
+    pub admin: bool,
     pub username: String,
     pub email: String,
     pub password: String,
@@ -23,9 +24,12 @@ pub struct User {
 #[derive(Insertable, Serialize, Deserialize)]
 #[diesel(table_name = users)]
 pub struct UserDTO {
+    pub admin: bool,
     pub username: String,
     pub email: String,
     pub password: String,
+    pub providers: String,
+    pub services: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -42,14 +46,17 @@ pub struct LoginInfoDTO {
 }
 
 impl User {
-    pub fn signup(new_user: UserDTO, conn: &mut Connection) -> Result<(), String> {
+    pub fn signup(new_user: UserDTO, conn: &mut Connection) -> Result<String, String> {
         if Self::find_user_by_username(&new_user.username, conn).is_err() {
             let new_user = UserDTO {
                 password: hash(&new_user.password, DEFAULT_COST).unwrap(),
                 ..new_user
             };
-            diesel::insert_into(users).values(new_user).execute(conn);
-            Ok(())
+
+            match diesel::insert_into(users).values(new_user).execute(conn) {
+                Ok(_) => Ok("User added successfully".to_string()),
+                Err(err) => Err(err.to_string()),
+            }
         } else {
             Err(format!("User '{}' is already registered", &new_user.username))
         }
