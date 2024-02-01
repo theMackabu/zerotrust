@@ -20,10 +20,7 @@ use crate::{
 };
 
 use actix_web::{
-    cookie::{
-        time::{Duration, OffsetDateTime},
-        Cookie,
-    },
+    cookie::{time::Duration, Cookie},
     dev::ConnectionInfo,
     http::{header::ContentType, StatusCode},
     web::{Data, Json},
@@ -58,6 +55,7 @@ pub async fn login(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data
     let tera = tera.get_ref();
     let mut page = Context::new();
 
+    // use display name from config
     match req.headers().get("SelectService") {
         None => page.insert("service_name", "(no service selected)"),
         Some(name) => page.insert("service_name", name.to_str().unwrap_or("(service name error)")),
@@ -108,6 +106,7 @@ pub async fn logout(req: HttpRequest, tera: Data<TeraState>) -> HttpResponse {
     let tera = tera.get_ref();
     let mut page = Context::new();
 
+    // use display name from config
     match req.headers().get("SelectService") {
         None => page.insert("service_name", "(no service selected)"),
         Some(name) => page.insert("service_name", name.to_str().unwrap_or("(service name error)")),

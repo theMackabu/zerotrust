@@ -15,6 +15,7 @@ diesel::table! {
         password -> Text,
         providers -> Text,
         services -> Text,
+        tokens -> Text,
         login_session -> Text,
     }
 }

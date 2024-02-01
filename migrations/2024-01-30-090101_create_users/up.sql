@@ -6,5 +6,6 @@ CREATE TABLE users (
    password VARCHAR NOT NULL,
    providers VARCHAR NOT NULL,
    services VARCHAR NOT NULL,
+   tokens VARCHAR NOT NULL,
    login_session VARCHAR NOT NULL DEFAULT ''
 );

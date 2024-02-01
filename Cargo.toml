@@ -1,7 +1,11 @@
 [package]
-name = "secure_proxy"
-version = "0.2.1"
+name = "zerotrust"
+version = "0.2.0"
 edition = "2021"
+license = "MIT"
+keywords = ["proxy", "security"]
+description = "Secure app proxy"
+repository = "https://lab.themackabu.dev/self/zerotrust"
 
 [dependencies]
 url = "2.5.0"
@@ -10,7 +14,6 @@ tera = "1.19.1"
 clap = "4.4.18"
 colored = "2.1.0"
 bcrypt = "0.15.0"
-inquire = "0.6.2"
 tracing = "0.1.40"
 futures = "0.3.30"
 macros-rs = "0.5.2"

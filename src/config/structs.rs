@@ -50,6 +50,8 @@ pub struct Provider {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Location {
+    #[serde(alias = "display-name")]
+    pub display_name: Cow<'static, str>,
     pub providers: Vec<Cow<'static, str>>,
     pub address: Cow<'static, str>,
     pub port: u16,

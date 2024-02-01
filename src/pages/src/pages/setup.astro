@@ -1,0 +1,10 @@
+---
+import Base from '@/components/base.astro';
+const config = "{{ config_body | json_encode() | safe }}";
+---
+
+<!DOCTYPE html>
+<html lang="en">
+   <head><Base title="Initial Setup" /></head>
+   <body><main>Setup Render {config}</main></body>
+</html>

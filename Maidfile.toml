@@ -1,27 +1,27 @@
 [project]
-name = "secure_proxy"
-version = "0.2.1"
+name = "zerotrust"
+version = "0.2.0"
 
 [tasks]
 clean = { script = ["rm -rf bin", "mkdir bin"] }
 assets = { path = "src/pages", script = ["pnpm i", "pnpm build"] }
-run = { script = ["maid build -q", "bash -c 'bin/secure_proxy start | bunyan'"] }
+run = { script = ["maid build -q", "bash -c 'bin/zerotrust | bunyan'"] }
 
 [tasks.build]
 depends = ["clean"]
 script = [
    "maid assets -q",
    "cargo zigbuild --release", 
-   "cp target/release/secure_proxy bin/secure_proxy"
+   "cp target/release/zerotrust bin/zerotrust"
 ]
 
 [tasks.build.cache]
 path = "src"
-target = ["bin/secure_proxy"]
+target = ["bin/zerotrust"]
 
 [tasks.install]
 script = [
    "maid build -q", 
-   "sudo cp bin/secure_proxy /usr/local/bin",
+   "sudo cp bin/zerotrust /usr/local/bin",
    "echo Copied binary!"
 ]

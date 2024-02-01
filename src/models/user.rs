@@ -9,7 +9,7 @@ use crate::{
     schema::users::{self, dsl::*},
 };
 
-#[derive(Identifiable, Queryable, Serialize, Deserialize)]
+#[derive(Debug, Identifiable, Queryable, Serialize, Deserialize)]
 pub struct User {
     pub id: i32,
     pub admin: bool,
@@ -17,6 +17,7 @@ pub struct User {
     pub email: String,
     pub password: String,
     pub login_session: String,
+    pub tokens: String,
     pub providers: String,
     pub services: String,
 }
@@ -28,6 +29,7 @@ pub struct UserDTO {
     pub username: String,
     pub email: String,
     pub password: String,
+    pub tokens: String,
     pub providers: String,
     pub services: String,
 }
@@ -119,9 +121,9 @@ impl User {
         Err("User not found!".to_string())
     }
 
-    pub fn find_user_by_username(un: &str, conn: &mut Connection) -> QueryResult<User> { users.filter(username.eq(un)).get_result::<User>(conn) }
-
     pub fn generate_login_session() -> String { Uuid::new_v4().to_string() }
+
+    pub fn find_user_by_username(un: &str, conn: &mut Connection) -> QueryResult<User> { users.filter(username.eq(un)).get_result::<User>(conn) }
 
     pub fn update_login_session_to_db(un: &str, login_session_str: &str, conn: &mut Connection) -> bool {
         if let Ok(user) = User::find_user_by_username(un, conn) {

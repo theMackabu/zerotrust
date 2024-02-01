@@ -1,3 +1,4 @@
+use crate::{config::db::Pool, http::token, models::user::User, schema::users};
 use actix_service::forward_ready;
 use actix_web::body::EitherBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
@@ -5,15 +6,10 @@ use actix_web::web::Data;
 use actix_web::HttpResponse;
 use actix_web::{guard::GuardContext, http::header::HeaderValue};
 use actix_web::{http::header, Error};
+use diesel::prelude::RunQueryDsl;
 use futures::future::{ok, LocalBoxFuture, Ready};
 use macros_rs::fmtstr;
 use std::collections::BTreeMap;
-
-use crate::{
-    config::db::{self, Pool},
-    http::token,
-    models::user::User,
-};
 
 pub struct Authentication;
 
@@ -50,6 +46,13 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         if let Some(pool) = req.app_data::<Data<Pool>>() {
+            if let Err(_) = users::table.first::<User>(&mut pool.get().unwrap()) {
+                let (request, _pl) = req.into_parts();
+                let header = (header::LOCATION, "/setup");
+                let response = HttpResponse::TemporaryRedirect().insert_header(header).finish();
+                return Box::pin(async { Ok(ServiceResponse::new(request, response.map_into_right_body())) });
+            }
+
             if let Some(cookie) = req.cookie("sp_token") {
                 let token = cookie.value();
                 if let Ok(token_data) = token::decode_token(token.to_string()) {
@@ -71,6 +74,14 @@ where
             .map_into_right_body();
 
         return Box::pin(async { Ok(ServiceResponse::new(request, response)) });
+    }
+}
+
+pub fn setup_guard(_ctx: &GuardContext<'_>) -> bool {
+    let pool = crate::POOL.get().unwrap();
+    match users::table.first::<User>(&mut pool.get().unwrap()) {
+        Ok(_) => false,
+        Err(_) => true,
     }
 }
 

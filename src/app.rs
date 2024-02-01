@@ -1,9 +1,12 @@
 use macros_rs::string;
+use once_cell::sync::OnceCell;
+use tera::Context;
 
 use crate::{
-    config::db::Pool,
+    config::{db::Pool, structs::Config},
     http::{errors::Error, token},
     models::user::User,
+    pages::{render, TeraState},
 };
 
 use actix_web::{
@@ -36,4 +39,26 @@ pub async fn dashboard(req: HttpRequest, pool: Data<Pool>) -> Result<HttpRespons
             message: "Token missing from request",
         })
     }
+}
+
+pub async fn setup(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data<TeraState>) -> HttpResponse {
+    tracing::info!(method = string!(req.method()), "setup '{}'", req.uri());
+
+    let tera = tera.get_ref();
+    let mut page = Context::new();
+    let config = config.get_ref().get().unwrap();
+
+    page.insert("config_body", config);
+    send!().body(render("setup", &tera.0, &mut page))
+}
+
+pub async fn setup_handler(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data<TeraState>) -> HttpResponse {
+    tracing::info!(method = string!(req.method()), "setup '{}'", req.uri());
+
+    let tera = tera.get_ref();
+    let mut page = Context::new();
+    let config = config.get_ref().get().unwrap();
+
+    page.insert("config_body", config);
+    send!().body(render("setup", &tera.0, &mut page))
 }

@@ -189,6 +189,8 @@ pub async fn start(pool: config::db::Pool) -> std::io::Result<()> {
             .app_data(Data::new(create_templates()))
             .app_data(Data::new(&BACKEND_LIST))
             .app_data(Data::new(pool.clone()))
+            .route("/setup", web::get().guard(middleware::setup_guard).to(app::setup))
+            .route("/setup", web::post().guard(middleware::setup_guard).to(app::setup_handler))
             .route(fmtstr!("/{prefix}/login"), web::get().guard(middleware::token_guard).to(auth::login))
             .route(fmtstr!("/{prefix}/logout"), web::get().to(auth::logout).wrap(middleware::Authentication))
             .route(fmtstr!("/{prefix}/app"), web::get().to(app::dashboard).wrap(middleware::Authentication))
