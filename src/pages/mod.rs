@@ -1,3 +1,4 @@
+use crate::config::structs::Config;
 use macros_rs::fmtstr;
 use tera::{Context, Tera};
 
@@ -19,9 +20,7 @@ pub fn create_templates() -> TeraState {
     return TeraState(tera);
 }
 
-pub fn render(name: &str, tmpl: &Tera, ctx: &mut Context) -> String {
-    let config = crate::CONFIG.get().unwrap();
-
+pub fn render(name: &str, tmpl: &Tera, ctx: &mut Context, config: &Config) -> String {
     ctx.insert("build_hash", env!("GIT_HASH"));
     ctx.insert("build_profile", env!("PROFILE"));
     ctx.insert("build_version", env!("CARGO_PKG_VERSION"));

@@ -10,7 +10,7 @@ mod schema;
 
 use clap::Parser;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
-use config::{db::Pool, structs::Config};
+use config::db::Pool;
 use macros_rs::{crashln, str};
 use once_cell::sync::OnceCell;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
@@ -31,7 +31,7 @@ struct Cli {
 }
 
 pub static POOL: OnceCell<Pool> = OnceCell::new();
-pub static CONFIG: OnceCell<Config> = OnceCell::new();
+pub static CONFIG_PATH: OnceCell<String> = OnceCell::new();
 
 fn main() {
     let cli = Cli::parse();
@@ -56,18 +56,18 @@ fn main() {
         .with(formatting_layer)
         .init();
 
-    if let Err(err) = CONFIG.set(config::read(cli.config)) {
-        crashln!("Failed to set config!\n{:?}", err)
+    if let Err(err) = CONFIG_PATH.set(cli.config.clone()) {
+        crashln!("Failed to set config path!\n{:?}", err)
     };
 
-    let pool = config::db::init_db();
+    let pool = config::db::init_db(&cli.config);
     config::db::run_migrations(&mut pool.get().unwrap());
 
     if let Err(err) = POOL.set(pool.clone()) {
         crashln!("Failed to set config!\n{:?}", err)
     };
 
-    if let Err(err) = http::start(pool) {
+    if let Err(err) = http::start(pool, &cli.config) {
         crashln!("Failed to start server!\n{:?}", err)
     };
 }

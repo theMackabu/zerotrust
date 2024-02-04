@@ -1,7 +1,6 @@
 pub mod middleware;
 
 use macros_rs::string;
-use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use tera::Context;
 
@@ -48,7 +47,7 @@ macro_rules! ok {
 
 fn remove_suffix<'a>(s: &'a str, suffix: &str) -> &'a str { s.split(suffix).next().unwrap_or(s) }
 
-pub async fn login(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data<TeraState>) -> HttpResponse {
+pub async fn login(req: HttpRequest, config: Data<Config>, tera: Data<TeraState>) -> HttpResponse {
     tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
 
     let config = config.get_ref();
@@ -61,10 +60,10 @@ pub async fn login(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data
         Some(name) => page.insert("service_name", name.to_str().unwrap_or("(service name error)")),
     };
 
-    send!().body(render("login", &tera.0, &mut page))
+    send!().body(render("login", &tera.0, &mut page, config))
 }
 
-pub async fn login_handler(req: HttpRequest, conn: ConnectionInfo, body: Json<Login>, pool: Data<Pool>) -> Result<HttpResponse, JsonError> {
+pub async fn login_handler(req: HttpRequest, conn: ConnectionInfo, body: Json<Login>, pool: Data<Pool>, config: Data<Config>) -> Result<HttpResponse, JsonError> {
     tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
 
     let email = body.email.to_lowercase();
@@ -75,7 +74,7 @@ pub async fn login_handler(req: HttpRequest, conn: ConnectionInfo, body: Json<Lo
 
     match User::login(login_dto, &mut pool.get().unwrap()) {
         Some(logged_user) => {
-            let token = UserToken::generate_token(&logged_user);
+            let token = UserToken::generate_token(&logged_user, config.as_ref());
 
             if logged_user.login_session.is_empty() {
                 Err(JsonError {
@@ -100,7 +99,7 @@ pub async fn login_handler(req: HttpRequest, conn: ConnectionInfo, body: Json<Lo
     }
 }
 
-pub async fn logout(req: HttpRequest, tera: Data<TeraState>) -> HttpResponse {
+pub async fn logout(req: HttpRequest, tera: Data<TeraState>, config: Data<Config>) -> HttpResponse {
     tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
 
     let tera = tera.get_ref();
@@ -112,14 +111,14 @@ pub async fn logout(req: HttpRequest, tera: Data<TeraState>) -> HttpResponse {
         Some(name) => page.insert("service_name", name.to_str().unwrap_or("(service name error)")),
     };
 
-    send!().body(render("logout", &tera.0, &mut page))
+    send!().body(render("logout", &tera.0, &mut page, config.as_ref()))
 }
 
-pub async fn logout_handler(req: HttpRequest, pool: Data<Pool>) -> Result<HttpResponse, Error> {
+pub async fn logout_handler(req: HttpRequest, pool: Data<Pool>, config: Data<Config>) -> Result<HttpResponse, Error> {
     tracing::info!(method = string!(req.method()), "internal '{}'", req.uri());
 
     if let Some(cookie) = req.cookie("sp_token") {
-        if let Ok(token_data) = token::decode_token(cookie.value().to_string()) {
+        if let Ok(token_data) = token::decode_token(cookie.value().to_string(), config.as_ref()) {
             if let Ok(username) = token::verify_token(&token_data, &pool) {
                 if let Ok(user) = User::find_user_by_username(&username, &mut pool.get().unwrap()) {
                     User::logout(user.id, &mut pool.get().unwrap());

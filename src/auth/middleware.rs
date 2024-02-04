@@ -1,4 +1,3 @@
-use crate::{config::db::Pool, http::token, models::user::User, schema::users};
 use actix_service::forward_ready;
 use actix_web::body::EitherBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
@@ -10,6 +9,13 @@ use diesel::prelude::RunQueryDsl;
 use futures::future::{ok, LocalBoxFuture, Ready};
 use macros_rs::fmtstr;
 use std::collections::BTreeMap;
+
+use crate::{
+    config::{db::Pool, structs::Config},
+    http::token,
+    models::user::User,
+    schema::users,
+};
 
 pub struct Authentication;
 
@@ -45,6 +51,8 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        let config = req.app_data::<Data<Config>>().unwrap();
+
         if let Some(pool) = req.app_data::<Data<Pool>>() {
             if let Err(_) = users::table.first::<User>(&mut pool.get().unwrap()) {
                 let (request, _pl) = req.into_parts();
@@ -55,7 +63,7 @@ where
 
             if let Some(cookie) = req.cookie("sp_token") {
                 let token = cookie.value();
-                if let Ok(token_data) = token::decode_token(token.to_string()) {
+                if let Ok(token_data) = token::decode_token(token.to_string(), config.as_ref()) {
                     if token::verify_token(&token_data, pool).is_ok() {
                         let res = self.service.call(req);
                         return Box::pin(async move { res.await.map(ServiceResponse::map_into_left_body) });
@@ -64,7 +72,6 @@ where
             }
         }
 
-        let config = crate::CONFIG.get().unwrap();
         let prefix = config.settings.server.prefix.clone();
         let (request, _pl) = req.into_parts();
 
@@ -86,7 +93,6 @@ pub fn setup_guard(_ctx: &GuardContext<'_>) -> bool {
 }
 
 pub fn token_guard(ctx: &GuardContext<'_>) -> bool {
-    let pool = crate::POOL.get().unwrap();
     let empty_header = HeaderValue::from_static("");
     let cookie_string = ctx.head().headers().get("cookie").unwrap_or(&empty_header).to_str().unwrap_or("");
 
@@ -98,7 +104,10 @@ pub fn token_guard(ctx: &GuardContext<'_>) -> bool {
             .collect();
 
         if cookies.contains_key("sp_token") {
-            match token::decode_token(cookies.get("sp_token").unwrap().to_string()) {
+            let pool = crate::POOL.get().unwrap();
+            let path = crate::CONFIG_PATH.get().unwrap();
+            let config = Config::new().set_path(path).read();
+            match token::decode_token(cookies.get("sp_token").unwrap().to_string(), &config) {
                 Ok(token) => !User::is_valid_login_session(&token.claims, &mut pool.get().unwrap()),
                 Err(_) => true,
             }

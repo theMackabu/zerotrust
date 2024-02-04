@@ -1,3 +1,4 @@
+use crate::config::structs::Config;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use macros_rs::then;
 use std::time::Duration;
@@ -39,8 +40,8 @@ impl diesel::r2d2::CustomizeConnection<Connection, diesel::r2d2::Error> for Conn
     }
 }
 
-pub fn init_db() -> Pool {
-    let config = crate::CONFIG.get().unwrap();
+pub fn init_db(path: &String) -> Pool {
+    let config = Config::new().set_path(path).read();
 
     let pool = r2d2::Pool::builder()
         .max_size(16)

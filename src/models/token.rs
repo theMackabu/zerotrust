@@ -1,4 +1,4 @@
-use crate::models::user::LoginInfoDTO;
+use crate::{config::structs::Config, models::user::LoginInfoDTO};
 use chrono::Utc;
 use jsonwebtoken::{EncodingKey, Header};
 use serde::{Deserialize, Serialize};
@@ -18,8 +18,7 @@ pub struct TokenBodyResponse {
 }
 
 impl UserToken {
-    pub fn generate_token(login: &LoginInfoDTO) -> String {
-        let config = crate::CONFIG.get().unwrap();
+    pub fn generate_token(login: &LoginInfoDTO, config: &Config) -> String {
         let max_age = config.settings.max_age;
         let secret = config.settings.secret.as_bytes();
 

@@ -15,7 +15,7 @@ safelist.tmp
 /bin
 /target
 /config.toml
-/sp_files
+/staticFiles
 /*.db
 /*.db-*
 /*.todo

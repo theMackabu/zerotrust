@@ -35,7 +35,7 @@ const Services = () => {
 	useEffect(() => {
 		store.setValid.services({
 			address: validate.url(store.services.address),
-			displayName: validate.safe(store.services.displayName, 2)
+			displayName: validate.display(store.services.displayName, 2)
 		});
 	}, [store.services]);
 

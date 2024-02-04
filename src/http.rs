@@ -7,14 +7,12 @@ use actix_web_static_files::ResourceFiles;
 use errors::Error;
 use futures_util::StreamExt;
 use include_dir::{include_dir, Dir};
-use macros_rs::{clone, fmtstr, string, ternary};
-use once_cell::sync::{Lazy, OnceCell};
-use std::{borrow::Cow, collections::BTreeMap};
+use macros_rs::{clone, fmtstr, string};
 
 use crate::{
     app,
     auth::{self, middleware},
-    config::{self, structs::Config},
+    config::{db::Pool, structs::Config},
     pages::create_templates,
 };
 
@@ -28,48 +26,16 @@ use actix_web::{
     App, HttpRequest, HttpResponse, HttpServer,
 };
 
-struct Backend {
-    url: url::Url,
-    providers: Vec<Cow<'static, str>>,
-}
-
-type Backends = BTreeMap<&'static str, Backend>;
-
 static ASSETS_DIR: Dir<'_> = include_dir!("src/pages/dist/assets_provider");
 
-static BACKEND_LIST: Lazy<Backends> = Lazy::new(|| {
-    let mut backends: Backends = BTreeMap::new();
-    let config = crate::CONFIG.get().unwrap();
-
-    for (name, item) in config.backends.iter() {
-        let tls = match item.tls {
-            None => "http",
-            Some(is_tls) => ternary!(is_tls, "https", "http"),
-        };
-
-        let url = format!("{tls}://{}:{}", item.address, item.port);
-
-        backends.insert(
-            name,
-            Backend {
-                providers: clone!(item.providers),
-                url: url::Url::parse(&url).unwrap(),
-            },
-        );
-    }
-
-    return backends;
-});
-
-// add initial setup (no services found & how to config)
-async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<&OnceCell<Config>>, backends: Data<&Lazy<Backends>>) -> Result<HttpResponse, Error> {
+async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, config: Data<Config>) -> Result<HttpResponse, Error> {
     tracing::info!(method = string!(req.method()), "request '{}'", req.uri());
 
     let config = config.get_ref();
 
     if let Some(name) = req.headers().get("SelectService") {
         let name = name.to_str().unwrap_or("");
-        let (mut url, providers) = match backends.get(name) {
+        let (mut url, providers) = match config.backends().get(name) {
             Some(item) => (clone!(item.url), clone!(item.providers)),
             None => return Err(Error::NotFound { message: "Service not found" }),
         };
@@ -79,7 +45,7 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
                 continue;
             }
 
-            config.get().unwrap().providers.get(&provider);
+            config.providers.get(&provider);
         }
 
         url.set_path(req.uri().path());
@@ -121,14 +87,14 @@ async fn proxy(req: HttpRequest, payload: Payload, peer_addr: Option<PeerAddr>, 
     }
 }
 
-async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCell<Config>>, backends: Data<&Lazy<Backends>>) -> Result<HttpResponse, Error> {
+async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>) -> Result<HttpResponse, Error> {
     tracing::info!(method = string!(req.method()), "websocket '{}'", req.uri());
 
     let config = config.get_ref();
 
     if let Some(name) = req.headers().get("SelectService") {
         let name = name.to_str().unwrap_or("");
-        let mut url = match backends.get(name) {
+        let mut url = match config.backends().get(name) {
             Some(item) => clone!(item.url),
             None => return Err(Error::NotFound { message: "Service not found" }),
         };
@@ -177,17 +143,18 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<&OnceCe
 }
 
 #[actix_web::main]
-pub async fn start(pool: config::db::Pool) -> std::io::Result<()> {
-    let config = crate::CONFIG.get().unwrap();
+pub async fn start(pool: Pool, path: &String) -> std::io::Result<()> {
+    let config = Config::new().set_path(path).read();
 
     let app = move || {
+        tracing::info!(address = config.settings.server.address.to_string(), port = config.settings.server.port, "server started");
+
         let prefix = config.settings.server.prefix.clone();
         let files = crate::helpers::build_hashmap(&ASSETS_DIR);
 
         App::new()
-            .app_data(Data::new(&crate::CONFIG))
+            .app_data(Data::new(config.clone()))
             .app_data(Data::new(create_templates()))
-            .app_data(Data::new(&BACKEND_LIST))
             .app_data(Data::new(pool.clone()))
             .route("/setup", web::get().guard(middleware::setup_guard).to(app::setup))
             .route("/setup", web::post().guard(middleware::setup_guard).to(app::setup_handler))
@@ -208,6 +175,5 @@ pub async fn start(pool: config::db::Pool) -> std::io::Result<()> {
             .default_service(web::to(proxy).wrap(middleware::Authentication))
     };
 
-    tracing::info!(address = config.settings.server.address.to_string(), port = config.settings.server.port, "server started");
-    HttpServer::new(app).bind(config.get_address()).unwrap().run().await
+    HttpServer::new(app).bind(Config::new().set_path(path).read().get_address()).unwrap().run().await
 }

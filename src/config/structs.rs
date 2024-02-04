@@ -1,11 +1,18 @@
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, collections::BTreeMap};
+use std::collections::BTreeMap;
+
+pub struct Backend {
+    pub url: url::Url,
+    pub providers: Vec<String>,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
+    #[serde(skip)]
+    pub config_path: String,
     pub settings: Settings,
-    pub providers: BTreeMap<Cow<'static, str>, Provider>,
-    pub backends: BTreeMap<Cow<'static, str>, Location>,
+    pub providers: BTreeMap<String, Provider>,
+    pub backends: BTreeMap<String, Location>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -14,46 +21,46 @@ pub struct Settings {
     pub app: App,
     pub server: Server,
     pub max_age: i64,
-    pub database: Cow<'static, str>,
-    pub secret: Cow<'static, str>,
+    pub database: String,
+    pub secret: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Server {
     #[serde(alias = "static")]
-    pub files: Cow<'static, str>,
-    pub prefix: Cow<'static, str>,
-    pub address: Cow<'static, str>,
+    pub files: String,
+    pub prefix: String,
+    pub address: String,
     pub port: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct App {
-    pub name: Cow<'static, str>,
-    pub logo: Cow<'static, str>,
-    pub favicon: Option<Cow<'static, str>>,
-    pub accent: Cow<'static, str>,
-    pub pages: BTreeMap<Cow<'static, str>, Cow<'static, str>>,
+    pub name: String,
+    pub logo: String,
+    pub favicon: Option<String>,
+    pub accent: String,
+    pub pages: BTreeMap<String, String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Provider {
     #[serde(alias = "client-id")]
-    pub client_id: Cow<'static, str>,
+    pub client_id: String,
     #[serde(alias = "client-secret")]
-    pub client_secret: Cow<'static, str>,
+    pub client_secret: String,
     #[serde(alias = "auth-url")]
-    pub auth_url: Cow<'static, str>,
+    pub auth_url: String,
     #[serde(alias = "token-url")]
-    pub token_url: Cow<'static, str>,
+    pub token_url: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Location {
     #[serde(alias = "display-name")]
-    pub display_name: Cow<'static, str>,
-    pub providers: Vec<Cow<'static, str>>,
-    pub address: Cow<'static, str>,
+    pub display_name: String,
+    pub providers: Vec<String>,
+    pub address: String,
     pub port: u16,
     pub tls: Option<bool>,
 }

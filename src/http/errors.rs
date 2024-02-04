@@ -1,8 +1,12 @@
 #![allow(dead_code)]
 
 use super::catch::FromResidual;
-use crate::pages::{create_templates, render};
 use serde::Serialize;
+
+use crate::{
+    config::structs::Config,
+    pages::{create_templates, render},
+};
 
 use actix_web::{
     dev, error,
@@ -47,6 +51,9 @@ pub fn create_error(code: StatusCode, msg: &str, custom: Option<&str>) -> String
     let tera = create_templates();
     let mut page = Context::new();
 
+    let path = crate::CONFIG_PATH.get().unwrap();
+    let config = Config::new().set_path(path).read();
+
     let name = match custom {
         Some(name) => Some(name),
         None => code.canonical_reason(),
@@ -57,7 +64,7 @@ pub fn create_error(code: StatusCode, msg: &str, custom: Option<&str>) -> String
     page.insert("error_message", msg);
     page.insert("error_code", &code.as_u16());
 
-    render("error", &tera.0, &mut page)
+    render("error", &tera.0, &mut page, &config)
 }
 
 impl error::ResponseError for JsonError {

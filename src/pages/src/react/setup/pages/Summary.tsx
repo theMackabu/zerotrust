@@ -29,8 +29,18 @@ const Summary = () => {
 			})
 		}).then(async (response) => {
 			if (response.status === 200) {
-				await new Promise((r) => setTimeout(r, 1000));
-				window.location.href = '/app';
+				fetch(`/${store.settings.prefix}/api/login`, {
+					method: 'POST',
+					body: JSON.stringify({
+						email: store.account.email,
+						password: store.account.password
+					}),
+					headers: { 'Content-Type': 'application/json' }
+				}).then(async (response) => {
+					if (response.status === 200) {
+						window.location.href = `/${store.settings.prefix}/app`;
+					}
+				});
 			}
 		});
 	};
