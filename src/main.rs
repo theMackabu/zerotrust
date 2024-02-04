@@ -67,7 +67,7 @@ fn main() {
         crashln!("Failed to set config!\n{:?}", err)
     };
 
-    if let Err(err) = http::start(pool, &cli.config) {
+    if let Err(err) = http::start(pool, cli.config) {
         crashln!("Failed to start server!\n{:?}", err)
     };
 }

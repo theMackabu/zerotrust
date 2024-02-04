@@ -91,6 +91,7 @@ pub async fn setup(req: HttpRequest, tera: Data<TeraState>, config: Data<Config>
 
 pub async fn setup_handler(req: HttpRequest, body: Json<Setup>, pool: Data<Pool>) -> Result<HttpResponse, JsonError> {
     tracing::info!(method = string!(req.method()), "setup '{}'", req.uri());
+    let path = crate::CONFIG_PATH.get().unwrap();
 
     let mut config = Config::new();
     let mut edit = config.edit();
@@ -125,7 +126,7 @@ pub async fn setup_handler(req: HttpRequest, body: Json<Setup>, pool: Data<Pool>
     edit["backends"][body.service.name.clone()]["display_name"] = value(body.service.display.clone());
 
     config.set(Config::from_str(&edit.to_string()));
-    config.write();
+    config.set_path(path).write();
 
     match User::signup(user_dto, &mut pool.get().unwrap()) {
         Ok(_) => Ok(ok!().finish()),

@@ -64,7 +64,7 @@ impl Config {
         };
 
         if let Err(err) = fs::write(&self.config_path, contents) {
-            crashln!("Error writing config.\n{}", string!(err).white())
+            crashln!("Error writing config to {}.\n{}", self.config_path, string!(err).white())
         }
 
         tracing::info!(path = self.config_path, created = true, "config");
@@ -96,7 +96,6 @@ impl Config {
     }
 
     pub fn get_state(&self) -> &Self { self }
-    pub fn get_mut(&mut self) -> &mut Self { self }
     pub fn set(&mut self, config: Config) { *self = config }
     pub fn read(&self) -> Self { file::read(&self.config_path) }
     pub fn get_static(&self) -> String { self.settings.server.files.to_string() }
