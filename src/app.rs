@@ -59,7 +59,7 @@ pub struct Service {
     pub name: String,
     pub display: String,
     pub address: String,
-    pub port: u16,
+    pub port: Option<u16>,
     pub tls: bool,
 }
 
@@ -105,15 +105,23 @@ pub async fn setup_handler(req: HttpRequest, body: Json<Setup>, pool: Data<Pool>
         providers: json!(["basic"]).to_string(),
     };
 
+    let port = match body.service.port {
+        Some(port) => port,
+        None => match body.service.tls {
+            true => 443,
+            false => 80,
+        },
+    } as i64;
+
     edit["settings"]["secret"] = value(body.settings.secret.clone());
     edit["settings"]["app"]["logo"] = value(body.settings.icon.clone());
     edit["settings"]["app"]["accent"] = value(body.settings.accent.clone());
     edit["settings"]["server"]["prefix"] = value(body.settings.prefix.clone());
 
+    edit["backends"][body.service.name.clone()]["port"] = value(port);
     edit["backends"][body.service.name.clone()]["providers"] = value(Array::default());
     edit["backends"][body.service.name.clone()]["tls"] = value(body.service.tls.clone());
     edit["backends"][body.service.name.clone()]["address"] = value(body.service.address.clone());
-    edit["backends"][body.service.name.clone()]["port"] = value(body.service.port.clone() as i64);
     edit["backends"][body.service.name.clone()]["display_name"] = value(body.service.display.clone());
 
     config.set(Config::from_str(&edit.to_string()));

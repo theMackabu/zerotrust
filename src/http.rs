@@ -145,10 +145,9 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>
 #[actix_web::main]
 pub async fn start(pool: Pool, path: &String) -> std::io::Result<()> {
     let config = Config::new().set_path(path).read();
+    tracing::info!(address = config.settings.server.address.to_string(), port = config.settings.server.port, "server started");
 
     let app = move || {
-        tracing::info!(address = config.settings.server.address.to_string(), port = config.settings.server.port, "server started");
-
         let prefix = config.settings.server.prefix.clone();
         let files = crate::helpers::build_hashmap(&ASSETS_DIR);
 
