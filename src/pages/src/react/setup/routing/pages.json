@@ -1,0 +1,6 @@
+[
+	{ "slug": "user", "storeKey": "isAccountChecked", "name": "Account" },
+	{ "slug": "settings", "storeKey": "isSettingsChecked", "name": "Settings" },
+	{ "slug": "services", "storeKey": "isServicesChecked", "name": "Services" },
+	{ "slug": "summary", "storeKey": null, "name": "Summary" }
+]

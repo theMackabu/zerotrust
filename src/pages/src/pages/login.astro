@@ -1,17 +1,17 @@
 ---
+import { LoginCard } from '@/react';
 import Footer from '@/components/footer.astro';
-import Base, { app } from '@/components/base.astro';
-import { LoginCard } from '@/components/react';
+import Base, { app, service } from '@/components/base.astro';
 ---
 
 <!DOCTYPE html>
 <html lang="en">
-   <head><Base title={app.service.name + " | Sign in to continue"} /></head>
+   <head><Base title={service.name + " | Sign in to continue"} /></head>
    <div class="grid grid-cols-1 h-screen place-items-center">
      <div class="sm:mx-auto w-full sm:max-w-md p-4 sm:p-12 justify-center">
        <img class="h-10 w-auto" src={app.logo} alt={app.name}>
        <h2 class="mt-6 text-left text-2xl font-bold leading-9 tracking-tight text-zinc-900">Sign in to your account</h2>
-       <h3 class="-mt-1 text-left text-base font-semibold leading-9 tracking-tight text-zinc-600">Continue to {app.service.name}</h3>
+       <h3 class="-mt-1 text-left text-base font-semibold leading-9 tracking-tight text-zinc-600">Continue to {service.name}</h3>
        <LoginCard app={app} client:only />
      </div>
      <Footer />

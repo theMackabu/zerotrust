@@ -36,10 +36,12 @@ pub fn render(name: &str, tmpl: &Tera, ctx: &mut Context) -> String {
         None => ctx.insert("app_icon", &config.settings.app.logo),
     }
 
-    tmpl.render(name, &ctx).unwrap_or_else(|_err| {
+    tmpl.render(name, &ctx).unwrap_or_else(|err| {
         ctx.insert("error_code", &404);
         ctx.insert("error_name", "Template not found");
         ctx.insert("error_message", fmtstr!("The template {name} could not be found."));
+
+        tracing::error!("{err:?}");
         tmpl.render("error", &ctx).unwrap()
     })
 }

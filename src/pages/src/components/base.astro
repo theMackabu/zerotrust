@@ -10,17 +10,18 @@ export const app = {
    logo: "{{app_logo}}",
    favicon: "{{app_icon}}",
    accent: "{{app_accent}}",
-   service: {
-      name: "{{service_name}}"
-   },
    build: {
       hash: "{{build_hash}}",
       profile: "{{build_profile}}",
       version: "{{build_version}}",
    }
-}
+};
 
-export const pages = `{% for name, url in app_pages %}<a href="{{url}}">{{name}}</a>{% if loop.last == false %}<svg viewBox="0 0 2 2" aria-hidden="true" class="h-0.5 w-0.5 fill-gray-300"><circle cx="1" cy="1" r="1" /></svg>{% endif %}{% endfor %}`;
+export const service = {
+   name: "{{service_name}}"
+};
+
+export const pages = `{% for name, url in app_pages %}<a href="{{url}}">{{name}}</a>{% if loop.last == false %}<svg viewBox="0 0 2 2" aria-hidden="true" class="h-0.5 w-0.5 fill-zinc-300"><circle cx="1" cy="1" r="1" /></svg>{% endif %}{% endfor %}`;
 ---
 
 <meta charset="utf-8" />

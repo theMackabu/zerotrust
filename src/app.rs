@@ -1,5 +1,6 @@
 use macros_rs::string;
 use once_cell::sync::OnceCell;
+use serde::{Deserialize, Serialize};
 use tera::Context;
 
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
 
 use actix_web::{
     http::{header::ContentType, StatusCode},
-    web::Data,
+    web::{Data, Json},
     HttpRequest, HttpResponse,
 };
 
@@ -19,6 +20,43 @@ macro_rules! send {
     () => {
         HttpResponse::build(StatusCode::OK).content_type(ContentType::html())
     };
+}
+
+macro_rules! ok {
+    () => {
+        HttpResponse::build(StatusCode::OK)
+    };
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Setup {
+    pub account: Account,
+    pub settings: Settings,
+    pub service: Service,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Account {
+    pub email: String,
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Settings {
+    pub icon: String,
+    pub prefix: String,
+    pub accent: String,
+    pub secret: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Service {
+    pub name: String,
+    pub display: String,
+    pub address: String,
+    pub port: u16,
+    pub tls: bool,
 }
 
 pub async fn dashboard(req: HttpRequest, pool: Data<Pool>) -> Result<HttpResponse, Error> {
@@ -41,24 +79,16 @@ pub async fn dashboard(req: HttpRequest, pool: Data<Pool>) -> Result<HttpRespons
     }
 }
 
-pub async fn setup(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data<TeraState>) -> HttpResponse {
+pub async fn setup(req: HttpRequest, tera: Data<TeraState>) -> HttpResponse {
     tracing::info!(method = string!(req.method()), "setup '{}'", req.uri());
 
-    let tera = tera.get_ref();
-    let mut page = Context::new();
-    let config = config.get_ref().get().unwrap();
-
-    page.insert("config_body", config);
-    send!().body(render("setup", &tera.0, &mut page))
+    send!().body(render("setup", &tera.get_ref().0, &mut Context::new()))
 }
 
-pub async fn setup_handler(req: HttpRequest, config: Data<&OnceCell<Config>>, tera: Data<TeraState>) -> HttpResponse {
+pub async fn setup_handler(req: HttpRequest, body: Json<Setup>) -> HttpResponse {
     tracing::info!(method = string!(req.method()), "setup '{}'", req.uri());
 
-    let tera = tera.get_ref();
-    let mut page = Context::new();
-    let config = config.get_ref().get().unwrap();
+    println!("{body:?}");
 
-    page.insert("config_body", config);
-    send!().body(render("setup", &tera.0, &mut page))
+    ok!().finish()
 }

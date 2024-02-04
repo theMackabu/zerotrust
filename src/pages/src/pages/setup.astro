@@ -1,10 +1,10 @@
 ---
-import Base from '@/components/base.astro';
-const config = "{{ config_body | json_encode() | safe }}";
+import Setup from '@/react/setup'
+import Base, { app } from '@/components/base.astro';
 ---
 
 <!DOCTYPE html>
 <html lang="en">
    <head><Base title="Initial Setup" /></head>
-   <body><main>Setup Render {config}</main></body>
+   <Setup app={app} client:only />
 </html>
