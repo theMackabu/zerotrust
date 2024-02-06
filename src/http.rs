@@ -142,8 +142,7 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>
     }
 }
 
-#[actix_web::main]
-pub async fn start(pool: Pool, path: String) -> std::io::Result<()> {
+pub fn start(pool: Pool, path: String) -> actix_web::dev::Server {
     let config = Config::new().set_path(&path).read();
 
     let app = move || {
@@ -175,5 +174,5 @@ pub async fn start(pool: Pool, path: String) -> std::io::Result<()> {
     };
 
     tracing::info!(address = config.get_address().0, port = config.get_address().1, "server started");
-    HttpServer::new(app).bind(config.get_address()).unwrap().run().await
+    return HttpServer::new(app).bind(config.get_address()).unwrap().run();
 }

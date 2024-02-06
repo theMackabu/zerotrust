@@ -12,7 +12,10 @@ use clap::Parser;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use config::db::Pool;
 use macros_rs::{crashln, str};
+use notify::{Event, RecursiveMode, Watcher as _};
 use once_cell::sync::OnceCell;
+use std::path::Path;
+use tokio::sync::mpsc;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{filter::LevelFilter, prelude::*};
 
@@ -30,11 +33,16 @@ struct Cli {
     port: Option<u64>,
 }
 
+#[derive(Debug)]
+struct ConfigUpdated;
+
 pub static POOL: OnceCell<Pool> = OnceCell::new();
 pub static CONFIG_PATH: OnceCell<String> = OnceCell::new();
 
-fn main() {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+    let (reload_tx, mut reload_rx) = mpsc::channel(1);
 
     let formatting_layer = BunyanFormattingLayer::new("server".into(), std::io::stdout)
         .skip_fields(vec!["file", "line"].into_iter())
@@ -50,6 +58,15 @@ fn main() {
         _ => None,
     };
 
+    let mut file_watcher = notify::recommended_watcher(move |res: notify::Result<Event>| match res {
+        Ok(_) => {
+            tracing::info!("config updated");
+            reload_tx.blocking_send(ConfigUpdated).unwrap();
+        }
+        Err(err) => tracing::error!("file watch error: {err}"),
+    })
+    .unwrap();
+
     tracing_subscriber::registry()
         .with(level.unwrap_or(LevelFilter::INFO))
         .with(JsonStorageLayer)
@@ -60,14 +77,31 @@ fn main() {
         crashln!("Failed to set config path!\n{:?}", err)
     };
 
-    let pool = config::db::init_db(&cli.config);
+    let pool = config::db::init_db(&cli.config.clone());
     config::db::run_migrations(&mut pool.get().unwrap());
 
     if let Err(err) = POOL.set(pool.clone()) {
         crashln!("Failed to set config!\n{:?}", err)
     };
 
-    if let Err(err) = http::start(pool, cli.config) {
-        crashln!("Failed to start server!\n{:?}", err)
-    };
+    file_watcher.watch(Path::new(&cli.config), RecursiveMode::NonRecursive).unwrap();
+
+    loop {
+        let mut server = http::start(pool.clone(), cli.config.clone());
+        let handle = server.handle();
+
+        tokio::select! {
+            res = &mut server => {
+                res?;
+                break;
+            },
+            Some(_) = reload_rx.recv() => {
+                drop(handle.stop(true));
+                server.await?;
+                continue;
+            }
+        }
+    }
+
+    Ok(())
 }
