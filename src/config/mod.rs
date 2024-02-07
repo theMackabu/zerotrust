@@ -27,7 +27,7 @@ impl Config {
                 max_age: 604800,
                 server: Server {
                     prefix: "_zero".into(),
-                    files: "staticFiles".into(),
+                    files: "static_files".into(),
                     address: "127.0.0.1".into(),
                     port: 8080,
                 },

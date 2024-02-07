@@ -146,7 +146,7 @@ pub fn start(pool: Pool, path: String) -> actix_web::dev::Server {
     let config = Config::new().set_path(&path).read();
 
     let app = move || {
-        let config = Config::new().set_path(&path.clone()).read();
+        let config = Config::new().set_path(&path.clone()).create_dirs().read();
         let prefix = config.settings.server.prefix.clone();
         let files = crate::helpers::build_hashmap(&ASSETS_DIR);
 

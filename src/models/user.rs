@@ -16,10 +16,10 @@ pub struct User {
     pub username: String,
     pub email: String,
     pub password: String,
-    pub login_session: String,
-    pub tokens: String,
     pub providers: String,
     pub services: String,
+    pub tokens: String,
+    pub login_session: String,
 }
 
 #[derive(Insertable, Serialize, Deserialize)]
@@ -110,6 +110,9 @@ impl User {
 
     pub fn find_login_info_by_token(user_token: &UserToken, conn: &mut Connection) -> Result<LoginInfoDTO, String> {
         let user_result = users.filter(username.eq(&user_token.user)).filter(login_session.eq(&user_token.login_session)).get_result::<User>(conn);
+        let user_result2 = users.filter(username.eq(&user_token.user)).get_result::<User>(conn);
+
+        println!("{user_result:?}\n{user_result2:?}");
 
         if let Ok(user) = user_result {
             return Ok(LoginInfoDTO {

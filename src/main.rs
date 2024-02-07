@@ -12,9 +12,9 @@ use clap::Parser;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use config::db::Pool;
 use macros_rs::{crashln, str};
-use notify::{Event, RecursiveMode, Watcher as _};
+use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode, DebounceEventResult};
 use once_cell::sync::OnceCell;
-use std::path::Path;
+use std::{path::Path, time::Duration};
 use tokio::sync::mpsc;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{filter::LevelFilter, prelude::*};
@@ -58,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
         _ => None,
     };
 
-    let mut file_watcher = notify::recommended_watcher(move |res: notify::Result<Event>| match res {
+    let mut notify = new_debouncer(Duration::from_millis(250), move |res: DebounceEventResult| match res {
         Ok(_) => {
             tracing::info!("config updated");
             reload_tx.blocking_send(ConfigUpdated).unwrap();
@@ -84,7 +84,7 @@ async fn main() -> anyhow::Result<()> {
         crashln!("Failed to set config!\n{:?}", err)
     };
 
-    file_watcher.watch(Path::new(&cli.config), RecursiveMode::NonRecursive).unwrap();
+    notify.watcher().watch(Path::new(&cli.config), RecursiveMode::NonRecursive).unwrap();
 
     loop {
         let mut server = http::start(pool.clone(), cli.config.clone());

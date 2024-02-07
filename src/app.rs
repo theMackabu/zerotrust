@@ -36,7 +36,7 @@ macro_rules! ok {
 pub struct Setup {
     pub account: Account,
     pub settings: Settings,
-    pub service: Service,
+    pub service: Option<Service>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -93,7 +93,7 @@ pub async fn setup_handler(req: HttpRequest, body: Json<Setup>, pool: Data<Pool>
     tracing::info!(method = string!(req.method()), "setup '{}'", req.uri());
     let path = crate::CONFIG_PATH.get().unwrap();
 
-    let mut config = Config::new();
+    let mut config = Config::new().set_path(&path.clone()).read();
     let mut edit = config.edit();
 
     let user_dto = UserDTO {
@@ -106,27 +106,29 @@ pub async fn setup_handler(req: HttpRequest, body: Json<Setup>, pool: Data<Pool>
         providers: json!(["basic"]).to_string(),
     };
 
-    let port = match body.service.port {
-        Some(port) => port,
-        None => match body.service.tls {
-            true => 443,
-            false => 80,
-        },
-    } as i64;
-
     edit["settings"]["secret"] = value(body.settings.secret.clone());
     edit["settings"]["app"]["logo"] = value(body.settings.icon.clone());
     edit["settings"]["app"]["accent"] = value(body.settings.accent.clone());
     edit["settings"]["server"]["prefix"] = value(body.settings.prefix.clone());
 
-    edit["backends"][body.service.name.clone()]["port"] = value(port);
-    edit["backends"][body.service.name.clone()]["providers"] = value(Array::default());
-    edit["backends"][body.service.name.clone()]["tls"] = value(body.service.tls.clone());
-    edit["backends"][body.service.name.clone()]["address"] = value(body.service.address.clone());
-    edit["backends"][body.service.name.clone()]["display_name"] = value(body.service.display.clone());
+    if let Some(service) = &body.service {
+        let port = match service.port {
+            Some(port) => port,
+            None => match service.tls {
+                true => 443,
+                false => 80,
+            },
+        } as i64;
+
+        edit["backends"][service.name.clone()]["port"] = value(port);
+        edit["backends"][service.name.clone()]["providers"] = value(Array::default());
+        edit["backends"][service.name.clone()]["tls"] = value(service.tls.clone());
+        edit["backends"][service.name.clone()]["address"] = value(service.address.clone());
+        edit["backends"][service.name.clone()]["display_name"] = value(service.display.clone());
+    }
 
     config.set(Config::from_str(&edit.to_string()));
-    config.set_path(path).write();
+    config.set_path(path).create_dirs().write();
 
     match User::signup(user_dto, &mut pool.get().unwrap()) {
         Ok(_) => Ok(ok!().finish()),
