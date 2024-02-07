@@ -20,7 +20,8 @@ const useOnboardingStore = create((set) => ({
 
 	services: {
 		address: '',
-		displayName: ''
+		displayName: '',
+		skipped: false
 	},
 
 	page: {
@@ -73,6 +74,11 @@ const useOnboardingStore = create((set) => ({
 		set((state) => ({ page: { ...state.page, next: pages[index + 1] } }));
 	},
 
+	skipServices: () => {
+		set((state) => ({ isServicesChecked: true }));
+		set((state) => ({ services: { address: '', displayName: '', skipped: true } }));
+	},
+
 	setValid: {
 		account: (account) => {
 			set((state) => ({ ...state.valid, valid: account }));
@@ -83,7 +89,7 @@ const useOnboardingStore = create((set) => ({
 			set((state) => ({ isSettingsChecked: state.valid.icon && state.valid.prefix && state.valid.accent }));
 		},
 		services: (services) => {
-			set((state) => ({ ...state.valid, valid: services }));
+			set((state) => ({ ...state.valid, valid: services, services: { ...state.services, skipped: false } }));
 			set((state) => ({ isServicesChecked: state.valid.displayName && state.valid.address }));
 		}
 	}

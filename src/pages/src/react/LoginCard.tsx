@@ -1,10 +1,12 @@
+import { atob } from 'Base64';
 import { Github, Twitter } from './buttons';
 import { Transition } from '@headlessui/react';
-import { useState, Fragment, ChangeEvent } from 'react';
 import { XCircleIcon } from '@heroicons/react/24/solid';
+import { useEffect, useState, Fragment, ChangeEvent } from 'react';
 
 const LoginCard = (props: { app }) => {
 	const [loading, setLoading] = useState(false);
+	const params = new URLSearchParams(window.location.search);
 	const [loginFailed, setLoginFailed] = useState({ state: false, msg: '' });
 	const [loginForm, setLoginForm] = useState({ email: '', password: '', remember: false });
 
@@ -13,18 +15,21 @@ const LoginCard = (props: { app }) => {
 		setLoginForm((form) => ({ ...form, [name]: value }));
 	};
 
-	const handleSubmit = (event: any) => {
-		event.preventDefault();
+	const submitDetails = (data) => {
 		setLoading(true);
 
 		fetch(`/${props.app.prefix}/api/login`, {
 			method: 'POST',
-			body: JSON.stringify(loginForm),
+			body: JSON.stringify(data),
 			headers: { 'Content-Type': 'application/json' }
 		})
 			.then(async (response) => {
 				if (response.status === 200) {
-					window.location.href = '/';
+					if (params.get('redirect')) {
+						window.location.href = params.get('redirect');
+					} else {
+						window.location.href = '/';
+					}
 				} else {
 					const body = await response.json();
 					setLoading(false);
@@ -38,6 +43,18 @@ const LoginCard = (props: { app }) => {
 				setTimeout(() => setLoginFailed((data) => ({ ...data, state: false })), 3500);
 			});
 	};
+
+	const handleSubmit = (event: any) => {
+		event.preventDefault();
+		submitDetails(loginForm);
+	};
+
+	useEffect(() => {
+		if (params.get('auth')) {
+			const auth = JSON.parse(atob(params.get('auth')));
+			submitDetails(auth.remember ? auth : { ...auth, remember: false });
+		}
+	}, []);
 
 	return (
 		<Fragment>

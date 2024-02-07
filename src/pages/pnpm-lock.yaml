@@ -29,6 +29,9 @@ dependencies:
   '@types/react-dom':
     specifier: ^18.0.6
     version: 18.2.18
+  Base64:
+    specifier: ^1.3.0
+    version: 1.3.0
   astro:
     specifier: ^3.6.4
     version: 3.6.4(typescript@5.3.3)
@@ -1208,6 +1211,10 @@ packages:
 
   /@vscode/l10n@0.0.18:
     resolution: {integrity: sha512-KYSIHVmslkaCDyw013pphY+d7x1qV8IZupYfeIfzNA+nsaWHbn5uPuQRvdRFsa9zFzGeudPuoGoZ1Op4jrJXIQ==}
+    dev: false
+
+  /Base64@1.3.0:
+    resolution: {integrity: sha512-7BjEEmnnW5pm6mBXKQ8CfQFeVjSoFnB507R86mKaJqa2i8CvosDy/dj+9RpbD0A22XQ+hGb0FHO+226C0QXRGw==}
     dev: false
 
   /acorn@8.11.3:

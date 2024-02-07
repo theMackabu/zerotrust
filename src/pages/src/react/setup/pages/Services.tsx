@@ -37,10 +37,11 @@ const Services = () => {
 			address: validate.url(store.services.address),
 			displayName: validate.display(store.services.displayName, 2)
 		});
-	}, [store.services]);
+	}, [store.services.displayName, store.services.address]);
 
 	return (
 		<div className="flex flex-col pt-32 md:max-w-xl mx-auto">
+			<span className="text-zinc-600 text-lg uppercase font-bold">optional</span>
 			<Headline style="3xl">Add your first service</Headline>
 
 			<div className="mb-4">
@@ -85,8 +86,18 @@ const Services = () => {
 					</div>
 				</form>
 			</div>
-			<NextButton className="hidden md:flex" disabled={!store.isServicesChecked} />
-			<NextButton className="fixed bottom-0 left-0 md:hidden" disabled={!store.isServicesChecked} />
+			<NextButton
+				className="hidden md:flex"
+				buttonText={store.isServicesChecked ? 'Next' : 'Skip'}
+				onClick={() => !store.isServicesChecked && store.skipServices()}
+				disabled={!store.isServicesChecked && store.services.address && store.services.displayName}
+			/>
+			<NextButton
+				className="fixed bottom-0 left-0 md:hidden"
+				buttonText={store.isServicesChecked ? 'Next' : 'Skip'}
+				onClick={() => !store.isServicesChecked && store.skipServices()}
+				disabled={!store.isServicesChecked && store.services.address && store.services.displayName}
+			/>
 		</div>
 	);
 };
