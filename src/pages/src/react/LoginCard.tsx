@@ -7,6 +7,7 @@ import { useEffect, useState, Fragment, ChangeEvent } from 'react';
 const LoginCard = (props: { app }) => {
 	const [loading, setLoading] = useState(false);
 	const params = new URLSearchParams(window.location.search);
+	const cleaned = new URLSearchParams(window.location.search);
 	const [loginFailed, setLoginFailed] = useState({ state: false, msg: '' });
 	const [loginForm, setLoginForm] = useState({ email: '', password: '', remember: false });
 
@@ -25,10 +26,13 @@ const LoginCard = (props: { app }) => {
 		})
 			.then(async (response) => {
 				if (response.status === 200) {
+					cleaned.delete('auth');
+					cleaned.delete('redirect');
+
 					if (params.get('redirect')) {
-						window.location.href = params.get('redirect');
+						window.location.href = `${params.get('redirect')}?` + cleaned.toString();
 					} else {
-						window.location.href = '/';
+						window.location.href = '/?' + cleaned.toString();
 					}
 				} else {
 					const body = await response.json();
