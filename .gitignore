@@ -16,9 +16,7 @@ safelist.tmp
 /target
 /config.toml
 /static_files
-/*.db
-/*.db-*
-/*.todo
+*.todo
 
 # temp
 dist

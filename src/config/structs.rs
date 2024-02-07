@@ -18,11 +18,21 @@ pub struct Config {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     #[serde(alias = "max-age")]
+    pub max_age: i64,
+    pub secret: String,
     pub app: App,
     pub server: Server,
-    pub max_age: i64,
-    pub database: String,
-    pub secret: String,
+    pub database: Database,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Database {
+    #[serde(alias = "db-name")]
+    pub name: String,
+    pub user: String,
+    pub password: String,
+    pub address: String,
+    pub port: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -1,6 +1,5 @@
 use macros_rs::{str, string};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use tera::Context;
 use toml_edit::{value, Array};
 
@@ -101,9 +100,9 @@ pub async fn setup_handler(req: HttpRequest, body: Json<Setup>, pool: Data<Pool>
         username: body.account.username.to_lowercase(),
         email: body.account.email.to_lowercase(),
         password: body.account.password.clone(),
-        tokens: json!([]).to_string(),
-        services: json!([]).to_string(),
-        providers: json!(["basic"]).to_string(),
+        tokens: vec![],
+        services: vec![],
+        providers: vec!["basic".into()],
     };
 
     edit["settings"]["secret"] = value(body.settings.secret.clone());

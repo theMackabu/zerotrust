@@ -5,7 +5,7 @@ pub mod structs;
 use colored::Colorize;
 use macros_rs::{clone, crashln, folder_exists, string, ternary};
 use std::{collections::BTreeMap, fs};
-use structs::{App, Backend, Config, Server, Settings};
+use structs::{App, Backend, Config, Database, Server, Settings};
 use toml_edit::Document;
 
 type Backends = BTreeMap<String, Backend>;
@@ -22,9 +22,15 @@ impl Config {
             backends: BTreeMap::new(),
             config_path: "config.toml".into(),
             settings: Settings {
-                database: "users.db".into(),
                 secret: "CHANGE ME".into(),
                 max_age: 604800,
+                database: Database {
+                    name: "".into(),
+                    user: "".into(),
+                    password: "".into(),
+                    address: "".into(),
+                    port: 5432,
+                },
                 server: Server {
                     prefix: "_zero".into(),
                     files: "static_files".into(),
@@ -93,6 +99,20 @@ impl Config {
         }
 
         return backends;
+    }
+
+    pub fn get_database(&self) -> String {
+        if self.settings.database.user == "" || self.settings.database.name == "" || self.settings.database.address == "" {
+            crashln!("Invalid postgres details, check configuration file!");
+        }
+
+        format!(
+            "postgres://{username}:{password}@{server}/{db_name}",
+            username = self.settings.database.user,
+            password = self.settings.database.password,
+            db_name = self.settings.database.name,
+            server = format!("{addr}:{port}", addr = self.settings.database.address, port = self.settings.database.port)
+        )
     }
 
     pub fn get_state(&self) -> &Self { self }

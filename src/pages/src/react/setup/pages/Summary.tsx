@@ -29,8 +29,6 @@ const Summary = () => {
 		});
 	}
 
-	console.log(store);
-
 	const submitSetupData = () => {
 		setLoading(true);
 		fetch('/setup', {

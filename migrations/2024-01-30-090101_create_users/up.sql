@@ -1,11 +1,11 @@
 CREATE TABLE users (
-   id INTEGER PRIMARY KEY NOT NULL,
-   admin INTEGER NOT NULL DEFAULT FALSE,
-   username VARCHAR NOT NULL,
-   email VARCHAR NOT NULL,
-   password VARCHAR NOT NULL,
-   providers VARCHAR NOT NULL,
-   services VARCHAR NOT NULL,
-   tokens VARCHAR NOT NULL,
-   login_session VARCHAR NOT NULL DEFAULT ''
+   id serial PRIMARY KEY NOT NULL,
+   admin boolean NOT NULL DEFAULT FALSE,
+   username text NOT NULL,
+   email text NOT NULL,
+   password text NOT NULL,
+   providers text[] NOT NULL,
+   services text[] NOT NULL,
+   tokens text[] NOT NULL,
+   login_session text NOT NULL DEFAULT ''
 );

@@ -10,8 +10,8 @@ mod schema;
 
 use clap::Parser;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
-use config::db::Pool;
-use macros_rs::{crashln, str};
+use config::{db::Pool, structs::Config};
+use macros_rs::{crashln, file_exists, str};
 use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode, DebounceEventResult};
 use once_cell::sync::OnceCell;
 use std::{path::Path, time::Duration};
@@ -58,6 +58,12 @@ async fn main() -> anyhow::Result<()> {
         _ => None,
     };
 
+    tracing_subscriber::registry()
+        .with(level.unwrap_or(LevelFilter::INFO))
+        .with(JsonStorageLayer)
+        .with(formatting_layer)
+        .init();
+
     let mut notify = new_debouncer(Duration::from_millis(250), move |res: DebounceEventResult| match res {
         Ok(_) => {
             tracing::info!("config updated");
@@ -67,21 +73,21 @@ async fn main() -> anyhow::Result<()> {
     })
     .unwrap();
 
-    tracing_subscriber::registry()
-        .with(level.unwrap_or(LevelFilter::INFO))
-        .with(JsonStorageLayer)
-        .with(formatting_layer)
-        .init();
-
     if let Err(err) = CONFIG_PATH.set(cli.config.clone()) {
         crashln!("Failed to set config path!\n{:?}", err)
-    };
+    } else {
+        if !file_exists!(&cli.config) {
+            Config::new().set_path(&cli.config).write();
+            tracing::warn!("written initial config, please add postgres details");
+            std::process::exit(1);
+        }
+    }
 
     let pool = config::db::init_db(&cli.config.clone());
     config::db::run_migrations(&mut pool.get().unwrap());
 
     if let Err(err) = POOL.set(pool.clone()) {
-        crashln!("Failed to set config!\n{:?}", err)
+        crashln!("Failed to set pool!\n{:?}", err)
     };
 
     notify.watcher().watch(Path::new(&cli.config), RecursiveMode::NonRecursive).unwrap();

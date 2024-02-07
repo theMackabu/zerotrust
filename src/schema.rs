@@ -13,9 +13,9 @@ diesel::table! {
         username -> Text,
         email -> Text,
         password -> Text,
-        providers -> Text,
-        services -> Text,
-        tokens -> Text,
+        providers -> Array<Text>,
+        services -> Array<Text>,
+        tokens -> Array<Text>,
         login_session -> Text,
     }
 }
