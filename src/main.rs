@@ -19,18 +19,20 @@ use tokio::sync::mpsc;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{filter::LevelFilter, prelude::*};
 
-#[derive(Parser)]
+#[derive(Clone, Parser)]
 #[command(version = str!(cli::get_version(false)))]
-struct Cli {
+pub struct Cli {
     #[clap(flatten)]
-    verbose: Verbosity<InfoLevel>,
+    pub verbose: Verbosity<InfoLevel>,
     /// Config path
     #[arg(short, long, default_value = "config.toml")]
-    config: String,
+    pub config: String,
     #[arg(short, long)]
-    address: Option<String>,
+    /// Override config address
+    pub address: Option<String>,
+    /// Override config port
     #[arg(short, long)]
-    port: Option<u64>,
+    pub port: Option<u16>,
 }
 
 #[derive(Debug)]
@@ -93,7 +95,7 @@ async fn main() -> anyhow::Result<()> {
     notify.watcher().watch(Path::new(&cli.config), RecursiveMode::NonRecursive).unwrap();
 
     loop {
-        let mut server = http::start(pool.clone(), cli.config.clone());
+        let mut server = http::start(pool.clone(), cli.clone());
         let handle = server.handle();
 
         tokio::select! {

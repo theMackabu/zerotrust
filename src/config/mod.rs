@@ -115,6 +115,9 @@ impl Config {
         )
     }
 
+    pub fn override_port(&mut self, port: u16) { self.settings.server.port = port; }
+    pub fn override_address(&mut self, address: String) { self.settings.server.address = address; }
+
     pub fn get_state(&self) -> &Self { self }
     pub fn set(&mut self, config: Config) { *self = config }
     pub fn read(&self) -> Self { file::read(&self.config_path) }

@@ -142,11 +142,11 @@ async fn proxy_ws(req: HttpRequest, client_stream: Payload, config: Data<Config>
     }
 }
 
-pub fn start(pool: Pool, path: String) -> actix_web::dev::Server {
-    let config = Config::new().set_path(&path).read();
+pub fn start(pool: Pool, cli: crate::Cli) -> actix_web::dev::Server {
+    let mut config = Config::new().set_path(&cli.config).read();
 
     let app = move || {
-        let config = Config::new().set_path(&path.clone()).create_dirs().read();
+        let config = Config::new().set_path(&cli.config).create_dirs().read();
         let prefix = config.settings.server.prefix.clone();
         let files = crate::helpers::build_hashmap(&ASSETS_DIR);
 
@@ -172,6 +172,14 @@ pub fn start(pool: Pool, path: String) -> actix_web::dev::Server {
             )
             .default_service(web::to(proxy).wrap(middleware::Authentication))
     };
+
+    if let Some(port) = cli.port {
+        config.override_port(port)
+    }
+
+    if let Some(address) = cli.address {
+        config.override_address(address)
+    }
 
     tracing::info!(address = config.get_address().0, port = config.get_address().1, "server started");
     return HttpServer::new(app).bind(config.get_address()).unwrap().run();
