@@ -182,5 +182,5 @@ pub fn start(pool: Pool, cli: crate::Cli) -> actix_web::dev::Server {
     }
 
     tracing::info!(address = config.get_address().0, port = config.get_address().1, "server started");
-    return HttpServer::new(app).bind(config.get_address()).unwrap().run();
+    HttpServer::new(app).bind(config.get_address()).unwrap().run()
 }

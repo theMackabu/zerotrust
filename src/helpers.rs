@@ -9,8 +9,16 @@ pub fn build_hashmap(dir: &'static Dir) -> HashMap<&'static str, Resource> {
 
     fn flatten_into(map: &mut HashMap<&'static str, Resource>, dir: &'static Dir) {
         for file in dir.files() {
-            let time = file.metadata().unwrap().modified().duration_since(SystemTime::UNIX_EPOCH);
-            let modified = if let Ok(modified) = time { modified.as_secs() } else { 0 };
+            let unix_epoch = SystemTime::UNIX_EPOCH;
+            let build_timestamp = env!("BUILD_TIMESTAMP").parse().unwrap_or(0);
+
+            let modified = file
+                .metadata()
+                .map(|m| m.modified())
+                .map(|t| t.duration_since(unix_epoch))
+                .and_then(|d| d.ok())
+                .map(|d| d.as_secs())
+                .unwrap_or(build_timestamp);
 
             map.insert(
                 file.path().to_str().expect("Failed to create path"),

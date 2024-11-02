@@ -1,9 +1,8 @@
-/** @type {import('tailwindcss').Config} */
+import type { Config } from 'tailwindcss';
+
 export default {
 	content: ['./safelist.tmp', './src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
-	theme: {
-		extend: { fontFamily: { sans: ['Inter var', ...require('tailwindcss/defaultTheme').fontFamily.sans] } }
-	},
+	theme: { extend: { fontFamily: { sans: ['Inter var', ...require('tailwindcss/defaultTheme').fontFamily.sans] } } },
 	plugins: [
 		require('@tailwindcss/forms'),
 		require('tailwind-safelist-generator')({
@@ -20,4 +19,4 @@ export default {
 			]
 		})
 	]
-};
+} satisfies Configl;

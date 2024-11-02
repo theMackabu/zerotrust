@@ -1,6 +1,6 @@
 [package]
 name = "zerotrust"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 keywords = ["proxy", "security"]
@@ -64,6 +64,14 @@ version = "0.11.23"
 [dependencies.serde]
 features = ["derive"]
 version = "1.0.196"
+
+[dependencies.pq-sys]
+features = ["bundled"]
+version = "0.6.3"
+
+[dependencies.openssl-sys]
+features = ["vendored"]
+version = "0.9.104"
 
 [dependencies.tokio]
 features = ["full"]
